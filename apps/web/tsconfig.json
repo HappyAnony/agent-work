@@ -59,6 +59,7 @@
     "tests/cot-translation.e2e.ts",
     "tests/cot-translation-paid.e2e.ts",
     "tests/forge-panel.e2e.ts",
+    "tests/wikiman.e2e.ts",
     "tests/voice-setup.e2e.ts",
     "tests/voice-download.e2e.ts",
     "tests/prefix-proxy.ts",

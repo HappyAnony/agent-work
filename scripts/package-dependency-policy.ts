@@ -18,6 +18,7 @@ const HOST_DEPENDENCY_PACKAGES: readonly string[] = [
 /** Required Cordis services whose Host imports are type-only. */
 const REQUIRED_SERVICE_PEERS = {
   '@deepseek-ai/dsh-api-terminal-controller': ['@deepseek-ai/dsh-subprocess'],
+  '@deepseek-ai/dsh-wikiman': ['@deepseek-ai/dsh-subprocess'],
 } as const satisfies Readonly<Record<string, readonly string[]>>
 
 /** Development-only package relationships not represented by source imports. */
@@ -75,6 +76,8 @@ const SAFE_HOST_DEPENDENCY_EXPORTS = {
 
 /** Runtime exports that require every consumer to resolve the provider's shared peer instance. */
 const PEER_REQUIRED_HOST_EXPORTS = {
+  // Definitions register against the injected tools service from the profile's shared peer.
+  '@deepseek-ai/dsh-tools': ['defineTool'],
   // Profile settings must match the installed Node provider's configuration schema.
   '@deepseek-ai/dsh-ptc-runtime-node/configuration': ['resolvePersistentExecution'],
   // CUA checks UserQuestionError and preserves AttachmentError from image admission.

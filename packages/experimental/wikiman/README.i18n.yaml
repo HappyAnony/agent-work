@@ -1,0 +1,58 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/experimental/wikiman/README.md
+/:
+  en: 2b1080b8c00a1738
+  zh: 5ee67dc79a4b837a
+/deepseek-ai-dsh-wikiman:
+  en: 17cd8e5aaa55ba99
+  zh: 65dc276319ce103c
+/deepseek-ai-dsh-wikiman/summary:
+  en: f42dc5c6a3c4a412
+  zh: 7eccf92a4241aed2
+/deepseek-ai-dsh-wikiman/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: dc594877b8e18a7c
+/deepseek-ai-dsh-wikiman/use-this-package:
+  en: 6475ba93e3f226ab
+  zh: eb526e3ecffc9338
+/deepseek-ai-dsh-wikiman/use-this-package/use-the-original-siyuan-desktop:
+  en: 6c548e1ca6b67907
+  zh: e66fd876da446a9f
+/deepseek-ai-dsh-wikiman/use-this-package/use-the-portable-workbench:
+  en: ebfca8fb1bba6529
+  zh: b044c822a6e11298
+/deepseek-ai-dsh-wikiman/use-this-package/import-a-legacy-library:
+  en: 007dc8dec3d6a03c
+  zh: cff3394b62d38903
+/deepseek-ai-dsh-wikiman/use-this-package/sync-two-portable-copies:
+  en: 5194e937887f4412
+  zh: 39e8227ff8ecc361
+/deepseek-ai-dsh-wikiman/understand-the-implementation:
+  en: e2f796ccd8584302
+  zh: 6412d9d7889450be
+/deepseek-ai-dsh-wikiman/further-exploration:
+  en: 9e9ede51ab46d5d6
+  zh: 2a3e7f1b3950ce53
+/deepseek-ai-dsh-wikiman/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-wikiman/model-experience/workspace-knowledge:
+  en: 0337444479737ac1
+  zh: 0ec4c698cf7d1274
+/deepseek-ai-dsh-wikiman/model-experience/workspace-knowledge/what-the-model-sees:
+  en: 5202f2c489e91632
+  zh: d8321c25245e0770
+/deepseek-ai-dsh-wikiman/model-experience/workspace-knowledge/token-effect:
+  en: 6963870fe938f490
+  zh: 05561d8eb8b527bc
+/deepseek-ai-dsh-wikiman/model-experience/workspace-knowledge/kv-cache-effect:
+  en: d77e5bc51e5f56af
+  zh: 067ac5f681b6768a
+/deepseek-ai-dsh-wikiman/known-limitations-and-deferred-work:
+  en: 0ced173e7b3991f4
+  zh: 66cab22e3e47cca1
+/deepseek-ai-dsh-wikiman/known-limitations-and-deferred-work/dev-note:
+  en: 2d1d270f169520e5
+  zh: 25df2adeac85b93a

@@ -4815,6 +4815,68 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-webhook-github -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-wikiman -->
+<a id="deepseek-aidsh-wikiman"></a>
+
+## `@deepseek-ai/dsh-wikiman`
+
+- `inject`: `typert` · `subprocess` · `tools`
+- `source`: [`packages/experimental/wikiman/src/index.ts:19`](../packages/experimental/wikiman/src/index.ts)
+
+```ts config-catalog
+/** WikiMan runtime, local library and the workspace allowed to query it. */
+export interface Config extends KernelConfig, ReplicaConfig {
+  /** Select the original SiYuan workspace or the portable WikiMan source and application. */
+  readonly runtime: WikiRuntime
+  /** Time budget for one legacy import or portable sync operation in milliseconds. */
+  readonly sourceOperationTimeoutMs: number
+  /** Absolute directory recorded when a Session starts in this workspace. */
+  readonly workspaceRoot: string
+  /** Maximum pages or document rows visited per list call. */
+  readonly pageSize: number
+  /** Maximum document references returned by one search. */
+  readonly maxSearchHits: number
+  /** Maximum UTF-16 text length returned by one document read. */
+  readonly maxReadChars: number
+}
+
+/** Explicit paths and limits for the owned kernel. */
+export interface KernelConfig {
+  /** Absolute path to the executable matching the selected WikiMan runtime. */
+  readonly kernelPath: string
+  /** Absolute path to the matching wiki-app or original siyuan-app resource directory. */
+  readonly appDir: string
+  /** Absolute path to the portable store or original WikiMan library. */
+  readonly sourceRoot: string
+  /** Maximum time in milliseconds to wait for kernel readiness. */
+  readonly startupTimeoutMs: number
+  /** Grace period in milliseconds for the kernel to release the source during shutdown. */
+  readonly shutdownGraceMs: number
+  /** Maximum time in milliseconds for an authenticated kernel request. */
+  readonly requestTimeoutMs: number
+  /** Maximum bytes accepted from one kernel response. */
+  readonly maxResponseBytes: number
+}
+
+/** Configured shared directory and resource limits for portable replication. */
+export interface ReplicaConfig extends SourceLimits {
+  /** Absolute shared directory for one store's verified generations. */
+  readonly syncDirectory?: string
+}
+
+/** The two supported native editor and storage formats. */
+export type WikiRuntime = 'portable' | 'siyuan'
+
+/** Byte and entry budgets for an owner's source operation. */
+export interface SourceLimits {
+  /** Aggregate bytes accepted from a portable or legacy source. */
+  readonly maxSourceBytes: number
+  /** Aggregate files and directories accepted per inventory. */
+  readonly maxSourceFiles: number
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-wikiman -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-workflow-ptc -->
 <a id="deepseek-aidsh-workflow-ptc"></a>
 

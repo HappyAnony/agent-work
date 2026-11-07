@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "pageId": "1760000000000000003",
+  "name": "空表格节点",
+  "parentId": "1760000000000000001",
+  "rank": "0001",
+  "type": "table",
+  "revision": 1,
+  "createdAt": "2026-10-19T01:00:00Z",
+  "updatedAt": "2026-10-19T01:00:00Z",
+  "deletedAt": null,
+  "entryDocument": null,
+  "ext": {}
+}

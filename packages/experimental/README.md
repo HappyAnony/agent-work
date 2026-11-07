@@ -44,6 +44,7 @@ Promotion requires a named product role, documented public behavior and limitati
 | [`client-ui-plugin-recommendations`](client-ui-plugin-recommendations/README.md) | Official plugin card body with catalog text and enabling | — |
 | [`personalized-recommendations`](personalized-recommendations/README.md) | Default-disabled bundle of personalized pages, plugin recommendations and their action cards | — |
 | [`tool-session-query`](tool-session-query/README.md) | Workspace-authorized model session search, trace, and event reads | — |
+| [`wikiman`](wikiman/README.md) | Original SiYuan and portable Wiki workbenches with Agent search and citation | — |
 | [`session-search`](session-search/README.md) | Optional experimental global session search tools | — |
 | [`ralph-bundle`](ralph-bundle/README.md) | Optional repeated delegation with an isolated workflow engine | — |
 | [`terminal-bundle`](terminal-bundle/README.md) | Optional global persistent terminal tools | — |

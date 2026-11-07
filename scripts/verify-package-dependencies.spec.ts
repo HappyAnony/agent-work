@@ -216,6 +216,7 @@ describe('package dependency scope', () => {
     ])
     expect(PACKAGE_DEPENDENCY_POLICY.requiredServicePeers).toEqual({
       '@deepseek-ai/dsh-api-terminal-controller': ['@deepseek-ai/dsh-subprocess'],
+      '@deepseek-ai/dsh-wikiman': ['@deepseek-ai/dsh-subprocess'],
     })
     expect(PACKAGE_DEPENDENCY_POLICY.configurationOnlyDevDependencies).toEqual({
       '@deepseek-ai/dsh-client-locale': ['@deepseek-ai/dsh-api-remotes'],
@@ -255,6 +256,7 @@ describe('package dependency scope', () => {
     expect(PACKAGE_DEPENDENCY_POLICY.peerRequiredHostExports['@deepseek-ai/dsh-session'])
       .toEqual(['SESSION_FORMAT_VERSION', 'appendPluginRecord', 'pluginRecordOf'])
     expect(PACKAGE_DEPENDENCY_POLICY.peerRequiredHostExports['@deepseek-ai/dsh-timeout']).toEqual(['deadline'])
+    expect(PACKAGE_DEPENDENCY_POLICY.peerRequiredHostExports['@deepseek-ai/dsh-tools']).toEqual(['defineTool'])
   })
 
   it('discovers the Client directory, dsh.client declarations, and configured Host packages', () => {

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "pageId": "1760000000000000001",
+  "name": "技术知识",
+  "parentId": null,
+  "rank": "0001",
+  "type": "wiki",
+  "revision": 1,
+  "createdAt": "2026-10-19T01:00:00Z",
+  "updatedAt": "2026-10-19T01:00:00Z",
+  "deletedAt": null,
+  "entryDocument": null,
+  "ext": {
+    "fixture": true
+  }
+}

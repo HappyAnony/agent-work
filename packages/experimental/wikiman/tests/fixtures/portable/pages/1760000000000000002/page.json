@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "pageId": "1760000000000000002",
+  "name": "单文档示例",
+  "parentId": "1760000000000000001",
+  "rank": "0001",
+  "type": "docx",
+  "revision": 1,
+  "createdAt": "2026-10-19T01:00:00Z",
+  "updatedAt": "2026-10-19T01:00:00Z",
+  "deletedAt": null,
+  "entryDocument": {
+    "boxId": "20261019090000-box0001",
+    "docId": "20261019090001-doc0001"
+  },
+  "ext": {}
+}

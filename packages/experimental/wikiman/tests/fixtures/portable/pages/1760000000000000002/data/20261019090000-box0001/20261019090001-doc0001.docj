@@ -1,0 +1,60 @@
+{
+  "ID": "20261019090001-doc0001",
+  "Spec": "1",
+  "Type": "NodeDocument",
+  "Properties": {
+    "id": "20261019090001-doc0001",
+    "title": "单文档示例",
+    "type": "doc",
+    "updated": "20261019090001"
+  },
+  "Children": [
+    {
+      "ID": "20261019090002-par0001",
+      "Type": "NodeParagraph",
+      "Properties": {
+        "id": "20261019090002-par0001"
+      },
+      "Children": [
+        {
+          "Type": "NodeText",
+          "Data": "Synthetic knowledge: offline Wiki and Agent fixture."
+        }
+      ]
+    },
+    {
+      "ID": "20261019090003-cod0001",
+      "Type": "NodeCodeBlock",
+      "IsFencedCodeBlock": true,
+      "Properties": {
+        "id": "20261019090003-cod0001"
+      },
+      "Children": [
+        {
+          "Type": "NodeCodeBlockFenceInfoMarker",
+          "Data": "go"
+        },
+        {
+          "Type": "NodeCodeBlockCode",
+          "Data": "fmt.Println(\"wiki\")\n"
+        }
+      ]
+    },
+    {
+      "ID": "20261019090004-ref0001",
+      "Type": "NodeParagraph",
+      "Properties": {
+        "id": "20261019090004-ref0001"
+      },
+      "Children": [
+        {
+          "Type": "NodeTextMark",
+          "TextMarkType": "block-ref",
+          "TextMarkBlockRefID": "20261019090002-par0001",
+          "TextMarkBlockRefSubtype": "d",
+          "TextMarkTextContent": "fixture paragraph"
+        }
+      ]
+    }
+  ]
+}

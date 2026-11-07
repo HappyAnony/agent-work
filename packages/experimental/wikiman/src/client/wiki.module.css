@@ -1,0 +1,257 @@
+.page,
+.siyuanPage {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base);
+}
+
+.heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 24px 12px;
+}
+
+:global([data-platform='darwin']) .heading {
+  padding-top: calc(20px + var(--dsh-frame-top-clearance, 0px));
+}
+
+.heading h1 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 500;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: clamp(160px, 24%, 240px) minmax(0, 1fr);
+  min-height: 0;
+  flex: 1;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+  overflow: auto;
+  padding: 12px;
+  font-size: 13px;
+}
+
+.list p,
+.emptyEditor p {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.treeRow {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.disclosure,
+.disclosureGap {
+  flex: 0 0 24px;
+}
+
+.disclosure {
+  padding-inline: 0;
+}
+
+.row {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+  text-align: start;
+}
+
+.row span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row[aria-pressed='true'] {
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+.anchor {
+  min-height: 0;
+  min-width: 0;
+  border-inline-start: 1px solid var(--dsw-alias-border-l4);
+}
+
+.workArea {
+  position: fixed;
+  display: flex;
+  pointer-events: auto;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+}
+
+.workArea[hidden] {
+  display: none;
+}
+
+.editor {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.editorBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 12px;
+}
+
+.editorBar h2 {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.editor p,
+.emptyEditor {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.frame {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+}
+
+@media (max-width: 620px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(96px, 25%) minmax(0, 1fr);
+  }
+
+  .anchor {
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--dsw-alias-border-l4);
+  }
+}
+
+@media (pointer: coarse) {
+  .list input {
+    font-size: 16px;
+  }
+}
+
+.headingActions,
+.createForm fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.createForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.createForm fieldset {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.createForm label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.maintenanceField {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-block-end: 12px;
+}
+
+.maintenanceField label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.libraryFields {
+  display: grid;
+  gap: 10px;
+  margin-block-end: 12px;
+}
+
+.libraryFields label {
+  display: grid;
+  gap: 4px;
+}
+
+.libraryResult {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
+}
+
+.libraryResult dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.siyuanPage .columns {
+  grid-template-columns: clamp(184px, 22%, 280px) minmax(0, 1fr);
+}
+
+.siyuanPage .list {
+  background: var(--dsw-alias-bg-base);
+}
+
+.pageTreeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pageTreeHeader h1 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+:global([data-platform='darwin']) .siyuanPage {
+  padding-block-start: var(--dsh-frame-top-clearance, 0px);
+}
+
+@media (max-width: 800px) {
+  .siyuanPage .columns {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(112px, 25%) minmax(0, 1fr);
+  }
+
+  .siyuanPage .anchor {
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--dsw-alias-border-l4);
+  }
+}
