@@ -71,6 +71,7 @@ import { DesktopUpdateOverlays } from './update-overlay.ts'
 import { DesktopQuitConfirmation } from './quit-confirmation.ts'
 import { DesktopTray } from './tray.ts'
 import { DesktopBackgroundNotice } from './background-notice.ts'
+import { startRemoteDesktop } from './remote-desktop.ts'
 
 let focusPrimaryWindow = (): void => {}
 let stopForRecovery = async (): Promise<void> => { await stopOperationReports() }
@@ -1574,7 +1575,15 @@ async function main(): Promise<void> {
 
 const ownsDesktopInstance = claimDesktopSingleInstance(app, () => { focusPrimaryWindow() })
 
-if (ownsDesktopInstance) void app.whenReady().then(main).catch(async (error: unknown) => {
+if (ownsDesktopInstance) void app.whenReady().then(async () => {
+  const manifest: unknown = JSON.parse(await readFile(join(app.getAppPath(), 'package.json'), 'utf8'))
+  const remote = process.argv.includes('--remote') || typeof manifest === 'object' && manifest !== null && 'dshRemoteClient' in manifest && manifest.dshRemoteClient === true
+  if (remote) {
+    focusPrimaryWindow = await startRemoteDesktop(process.env.DSH_REMOTE_FRONTEND_DIR ?? join(process.resourcesPath, 'frontend'))
+    return
+  }
+  await main()
+}).catch(async (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error)
   console.error(error)
   const diagnosticFile = process.env.DSH_DESKTOP_DIAGNOSTIC_FILE

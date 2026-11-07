@@ -74,6 +74,9 @@ export class WikiKernel {
 
   constructor(private readonly subprocess: SubprocessRuntime, private readonly config: KernelConfig) {}
 
+  /** Cancellation of the owned kernel generation, including source replacement and teardown. */
+  get signal(): AbortSignal { return this.lifetime.signal }
+
   /**
    * Read the live kernel identity.
    * @returns verified loopback editor origin and identity of the running source.

@@ -53,6 +53,7 @@ const pluginActionsSchema = z
 /** One page capability and initial document transferred on a private port. */
 export interface FrameMount {
   baseUrl: string
+  streamBaseUrl?: string | undefined
   view: EditorView
   document: DocumentKey | null
   focus?: { blockId: string; hash: string }
@@ -174,7 +175,7 @@ export function connectEditorFrame(options: {
   pluginSystemShortcuts?(chords: string[]): void
   pluginHostActions?(actions: PluginHostAction[]): void
 }): PortableChannel {
-  if (options.frameOrigin !== new URL(options.payload.baseUrl).origin) {
+  if (options.frameOrigin !== (options.payload.baseUrl.startsWith('dsh-app://app/') ? 'dsh-app://app' : new URL(options.payload.baseUrl).origin)) {
     throw new SessionError('invalid_frame_origin')
   }
   const channel = new MessageChannel(),

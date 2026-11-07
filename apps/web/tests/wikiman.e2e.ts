@@ -8,7 +8,7 @@ import { chromium, type Browser, type Page } from 'playwright'
 import { describe, expect, it, onTestFinished } from 'vitest'
 import { z } from 'zod'
 import { launchWebScaffold, readPersistedEvents, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage, REPO_ROOT } from './support.ts'
+import { connectFreshWorkspace, newEnglishPage, revealNavigationDrawer, REPO_ROOT } from './support.ts'
 
 const ironman = process.env.DSH_WIKIMAN_IRONMAN
 const runtimeResources = process.env.DSH_WIKIMAN_RESOURCES ?? (ironman && join(ironman, 'src-tauri/target/package-resources'))
@@ -91,6 +91,7 @@ describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record'
     page.on('pageerror', (error) => { failures.push(error.message) })
     page.on('console', (message) => { if (message.type() === 'error') failures.push(message.text()) })
     page.on('response', (response) => {
+      if (response.status() >= 400) failures.push(`${new URL(response.url()).pathname}:${response.status()}`)
       if (!response.url().includes('/v1/')) return
       void response.json().then((value: unknown) => {
         const parsed = z.object({ error: z.object({ type: z.string() }) }).safeParse(value)
@@ -103,8 +104,15 @@ describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record'
     expect(await page.getByRole('button', { name: '空表格节点', exact: true }).getAttribute('title')).toBe('空表格节点 · table')
     expect(await page.locator('nav').getByRole('button', { name: '技术知识', exact: true }).first().getAttribute('title')).toBe('技术知识 · wiki')
     const frame = page.frameLocator('iframe[title="WikiMan editor"]:visible')
-    await frame.locator('body[data-editor-ready="true"]').waitFor()
+    try { await frame.locator('body[data-editor-ready="true"]').waitFor() }
+    catch (error) { throw new Error('Editor boot failed: ' + failures.join('; ') + '; alerts=' + (await page.getByRole('alert').allTextContents()).join('; ') + '; frames=' + (await page.locator('iframe').evaluateAll(nodes => nodes.map(node => node.getAttribute('src')))).join('; '), { cause: error }) }
     const initialOrigin = await frame.locator('body').evaluate(() => location.origin)
+    expect(initialOrigin).toBe(new URL(scaffold.baseUrl).origin)
+    expect((await fetch(scaffold.baseUrl + '/api/client/bootstrap')).status).toBe(401)
+    expect((await fetch(scaffold.baseUrl + '/api/wikiman/v1/resource')).status).toBe(401)
+    const bootstrap = await page.request.get(scaffold.baseUrl + '/api/client/bootstrap')
+    expect(bootstrap.status()).toBe(200)
+    expect(z.object({ protocolVersion: z.literal(1), bundles: z.record(z.string(), z.string()), injections: z.array(z.unknown()) }).parse(await bootstrap.json()).bundles).toHaveProperty('@deepseek-ai/dsh-wikiman')
     const paragraph = frame.locator('.protyle-wysiwyg [data-type="NodeParagraph"] [contenteditable="true"]').first()
     await page.getByRole('button', { name: '单文档示例', exact: true }).click()
     try {
@@ -167,7 +175,7 @@ describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record'
     expect(await readFile(join(source, 'pages', created.pageId, 'data', created.entryDocument.boxId, created.entryDocument.docId + '.docj'), 'utf8')).toContain('Single workspace saved text')
   })
 
-  it('persists a browser edit and opens the committed document from a logged tool result', async () => {
+  it.each([{ device: 'browser', mobile: false }, { device: 'mobile browser', mobile: true }])('persists a $device edit and opens the committed document from a logged tool result', async ({ mobile }) => {
     const root = await realpath(await mkdtemp(join(tmpdir(), 'dsh-wikiman-e2e-')))
     try {
       const sourceRoot = join(root, 'wiki')
@@ -201,9 +209,10 @@ describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record'
       try {
         const browser = await chromium.launch()
         try {
-          const page = await newEnglishPage(browser)
+          const page = mobile ? await browser.newPage({ viewport: { width: 390, height: 844 }, locale: 'en-US', isMobile: true, hasTouch: true }) : await newEnglishPage(browser)
           await page.goto(scaffold.authenticatedUrl)
           await connectFreshWorkspace(page, root)
+          if (mobile) await revealNavigationDrawer(page, 'en')
           await page.getByRole('button', { name: 'Knowledge base', exact: true }).click()
           await wikiPageAction(page, 'New page')
           const creation = page.getByRole('dialog', { name: 'New page' })
@@ -233,18 +242,21 @@ describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record'
           await page.keyboard.type(` ${marker}`)
           await iframe.evaluate((element) => { element.setAttribute('data-wiki-test-frame', 'original') })
           const newSession = page.getByRole('button', { name: 'New session', exact: true }).filter({ hasText: 'New Session' })
+          if (mobile) await revealNavigationDrawer(page, 'en')
           await newSession.click()
           await iframe.waitFor({ state: 'hidden' })
+          if (mobile) await revealNavigationDrawer(page, 'en')
           await page.getByRole('button', { name: 'Knowledge base', exact: true }).click()
           await iframe.waitFor({ state: 'visible' })
           expect(await iframe.getAttribute('data-wiki-test-frame')).toBe('original')
           await wikiPageAction(page, 'Save and close')
           await page.locator('iframe[title="WikiMan editor"]').waitFor({ state: 'hidden' })
 
+          if (mobile) await revealNavigationDrawer(page, 'en')
           await newSession.click()
           const composer = page.locator('[data-composer-input][contenteditable="true"]')
           await composer.fill('Find the updated release code in the Wiki and cite the document.')
-          const [sessionId] = await Promise.all([scaffold.whenTurnSettled(), composer.press('Enter')])
+          const [sessionId] = await Promise.all([scaffold.whenTurnSettled(), page.getByRole('button', { name: 'Send message', exact: true }).click()])
           const events = await readPersistedEvents(scaffold, sessionId)
           const toolResults = events.filter(event => event.type === 'tool/result')
           expect(toolResults).toHaveLength(2)
@@ -347,6 +359,52 @@ async function legacyFixture(portable: string, legacy: string) {
 }
 
 describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record')('WikiMan library maintenance', () => {
+  it('updates notebook trees in another client while keeping same-named Wiki spaces separate', async () => {
+    const root = await realpath(await mkdtemp(join(tmpdir(), 'dsh-wiki-peers-')))
+    const owned: { browser?: Browser; scaffold?: WebScaffold } = {}
+    onTestFinished(async () => {
+      try { await owned.browser?.close() } finally {
+        try { await owned.scaffold?.close() } finally { await rm(root, { recursive: true, force: true }) }
+      }
+    })
+    const source = join(root, 'library')
+    const shared = join(root, 'shared')
+    await Promise.all([cp(portableFixture, source, { recursive: true }), mkdir(shared)])
+    const scaffold = await portablePeer(source, requireRuntimeResources(), shared)
+    owned.scaffold = scaffold
+    const browser = await chromium.launch()
+    owned.browser = browser
+    const writer = await browser.newPage({ viewport: { width: 390, height: 844 }, locale: 'en-US', isMobile: true, hasTouch: true })
+    const reader = await newEnglishPage(browser)
+    const other = await newEnglishPage(browser)
+    const open = async (page: Page, index: number, mobile = false) => {
+      await page.goto(scaffold.authenticatedUrl)
+      if (mobile) await revealNavigationDrawer(page, 'en')
+      await page.getByRole('button', { name: 'Knowledge base', exact: true }).click()
+      await page.locator('nav').getByRole('button', { name: '技术知识', exact: true }).nth(index).click()
+      const frame = page.frameLocator('iframe[title="WikiMan editor"]:visible')
+      await frame.locator('body[data-editor-ready="true"]').waitFor()
+      return frame
+    }
+    const left = await open(writer, 0, true)
+    const right = await open(reader, 0)
+    const separate = await open(other, 1)
+    const files = left.getByRole('button', { name: 'Doc Tree', exact: true })
+    if (await files.getAttribute('aria-expanded') === 'false') await files.click()
+    await left.locator('.portable-sidebar .block__icons [data-type="more"]').click()
+    await left.getByText('New Notebook', { exact: true }).click()
+    const dialog = left.locator('[data-key="dialog-createnotebook"]')
+    await dialog.getByRole('textbox').fill('Peer notebook')
+    await dialog.getByRole('button', { name: 'Confirm', exact: true }).click()
+    await left.getByText('Peer notebook', { exact: true }).waitFor()
+    const notebook = await left.locator('.portable-sidebar ul[data-url]').filter({ hasText: 'Peer notebook' }).getAttribute('data-url')
+    if (!notebook) throw new Error('Created notebook has no native identity')
+    expect(JSON.parse(await readFile(join(source, 'pages', firstWikiId, 'data', notebook, '.wiki/conf.json'), 'utf8')))
+      .toMatchObject({ name: 'Peer notebook', closed: false })
+    await right.getByText('Peer notebook', { exact: true }).waitFor()
+    expect(await separate.getByText('Peer notebook', { exact: true }).count()).toBe(0)
+  })
+
   it('moves and restores pages, imports a checked legacy copy and preserves a two-way sync conflict', async () => {
     const root = await realpath(await mkdtemp(join(tmpdir(), 'dsh-wikiman-maintenance-')))
     const scaffolds = new Set<WebScaffold>()

@@ -145,6 +145,12 @@ The web plugin table service: incremental `dsh.client` scan + wire composition +
 graph(): WebBootGraph
 
 /**
+ * Fingerprint the captured browser entry bytes for a packaged remote client.
+ * @returns SHA-256 digests keyed by the currently composed package identities.
+ */
+bundleDigests(): Readonly<Record<string, string>>
+
+/**
  * Absolute path of an entry's client bundle.
  * @param id - entry id (package name).
  * @returns the path, or undefined for an unknown id.

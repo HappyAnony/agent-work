@@ -31,7 +31,7 @@ export function preparePortableLayout(element: HTMLElement, single: boolean) {
     } else {
         workspace.className = "fn__flex portable-desktop";
         workspace.style.height = "100vh";
-        sidebar.className = "fn__flex-column";
+        sidebar.className = "fn__flex-column portable-sidebar";
         sidebar.style.cssText = "width:260px;min-width:180px;min-height:0;flex-shrink:0;overflow:auto;border-right:1px solid var(--b3-border-color)";
         pane.className = "fn__flex-column fn__flex-1";
         pane.style.cssText = "height:100%;min-height:0;min-width:0;overflow:hidden";
@@ -86,6 +86,14 @@ async function mountFiles(sidebar: HTMLElement, app: App, openDocument: (id: str
     };
     let visiblePanel: HTMLElement | null = sidebar;
     let visibleToggle: HTMLButtonElement | null = toggleFiles;
+    const compact = window.matchMedia("(max-width: 620px)");
+    if (compact.matches) {
+        sidebar.classList.add("fn__none");
+        toggleFiles.classList.remove("dock__item--active");
+        toggleFiles.setAttribute("aria-expanded", "false");
+        visiblePanel = null;
+        visibleToggle = null;
+    }
     const switchPanel = (panel: HTMLElement, button: HTMLButtonElement) => {
         const show = visiblePanel !== panel;
         visiblePanel?.classList.add("fn__none");
@@ -104,6 +112,7 @@ async function mountFiles(sidebar: HTMLElement, app: App, openDocument: (id: str
     if (binding && protyle) { kinds.unshift("outline","backlink"); }
     for (const kind of kinds) {
         const panel = document.createElement("aside");
+        panel.classList.add("portable-sidebar");
         panel.style.cssText = sidebar.style.cssText;
         panel.classList.add("fn__none");
         sidebar.after(panel);
@@ -145,7 +154,11 @@ async function mountFiles(sidebar: HTMLElement, app: App, openDocument: (id: str
     sidebar.before(dock);
     toggleFiles.addEventListener("click", () => switchPanel(sidebar, toggleFiles));
     const files = new Files({
-        app, tab: {id: "portable-files", panelElement: sidebar} as Tab, openDocument, currentDocument,
+        app, tab: {id: "portable-files", panelElement: sidebar} as Tab,
+        openDocument: (id, event) => {
+            openDocument(id, event);
+            if (compact.matches && visiblePanel === sidebar) { switchPanel(sidebar, toggleFiles); }
+        }, currentDocument,
         minimize: () => {
             if (visiblePanel === sidebar) { switchPanel(sidebar, toggleFiles); }
             toggleFiles.focus();

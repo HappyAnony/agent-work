@@ -721,6 +721,14 @@ export class ClientModuleRegistry extends Service {
   }
 
   /**
+   * Fingerprint the captured browser entry bytes for a packaged remote client.
+   * @returns SHA-256 digests keyed by the currently composed package identities.
+   */
+  bundleDigests(): Readonly<Record<string, string>> {
+    return Object.fromEntries([...this.table].map(([id, record]) => [id, createHash('sha256').update(record.bundle).digest('hex')]))
+  }
+
+  /**
    * Absolute path of an entry's client bundle.
    * @param id - entry id (package name).
    * @returns the path, or undefined for an unknown id.

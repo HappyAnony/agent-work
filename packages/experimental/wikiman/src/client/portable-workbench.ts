@@ -985,13 +985,14 @@ export class PortableEditor {
       if (doc && !documents.some(item => sameDoc(item, doc))) {
         throw new Error('document_not_in_view')
       }
-      const base = new URL(target.baseUrl)
+      const base = new URL(target.baseUrl, location.href)
+      const hosted = target.baseUrl === '/api/wikiman'
+      const frameOrigin = hosted ? location.origin : base.origin
       if (
-        base.protocol !== 'http:' ||
-        !['127.0.0.1', '[::1]'].includes(base.hostname) ||
+        (!hosted && (base.protocol !== 'http:' || !['127.0.0.1', '[::1]'].includes(base.hostname))) ||
         base.username ||
         base.password ||
-        base.pathname !== '/' ||
+        base.pathname !== (hosted ? '/api/wikiman' : '/') ||
         base.search ||
         base.hash
       ) {
@@ -1003,7 +1004,7 @@ export class PortableEditor {
       frame.referrerPolicy = 'no-referrer'
       frame.style.cssText = 'position:absolute;height:100%;width:100%;border:0;visibility:hidden'
       frame.src =
-        base.origin + '/stage/build/portable/#' + new URLSearchParams({ parentOrigin: location.origin, channelId }).toString()
+        frameOrigin + '/stage/build/portable/#' + new URLSearchParams({ parentOrigin: location.origin, channelId }).toString()
       entry = {
         id: brandString<WikiTabId>(randomUUID()),
         target,
@@ -1029,7 +1030,7 @@ export class PortableEditor {
         const receive = (event: MessageEvent<unknown>) => {
           if (
             event.source !== frame.contentWindow ||
-            event.origin !== base.origin ||
+            event.origin !== frameOrigin ||
             !record(event.data) || event.data.type !== 'wiki:editor:booted' ||
             event.data.channelId !== channelId
           ) {
@@ -1040,10 +1041,11 @@ export class PortableEditor {
           try {
             current.connection = this.connect({
               frameWindow: present(frame.contentWindow),
-              frameOrigin: base.origin,
+              frameOrigin,
               channelId,
               payload: {
-                baseUrl: base.origin,
+                baseUrl: hosted ? frameOrigin + '/api/wikiman' : base.origin,
+                streamBaseUrl: (globalThis as { __DSH_TRANSPORT__?: { streamBaseUrl?: string } }).__DSH_TRANSPORT__?.streamBaseUrl,
                 view,
                 document: doc,
                 locale: this.host.locale(),

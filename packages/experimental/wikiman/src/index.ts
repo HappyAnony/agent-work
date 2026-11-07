@@ -1,6 +1,8 @@
 /** Opt-in WikiMan Host, editor Remote and read-only model tools. */
 import { realpath } from 'node:fs/promises'
-import { isAbsolute } from 'node:path'
+import { readFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { isAbsolute, join } from 'node:path'
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type { Agent } from '@deepseek-ai/dsh-agent'
@@ -14,9 +16,12 @@ import { WikiError, WikiKernel, type KernelConfig } from './kernel.ts'
 import type { WikiCreatePage, WikiDocument, WikiEditor, WikiImportConfirmation, WikiImportReport, WikiLegacyImport, WikiLink, WikiListing, WikiPage, WikiPageChange, WikiPageEditor, WikiRuntime, WikiSiyuanView, WikiSyncResult } from './types.ts'
 import { SiyuanWiki } from './siyuan-wiki.ts'
 import { Wiki } from './wiki.ts'
+import { EDITOR_API_PATH, installEditorRelay } from './editor-relay.ts'
 
 /** WikiMan runtime, local library and the workspace allowed to query it. */
 export interface Config extends KernelConfig, ReplicaConfig {
+  /** Maximum bytes transferred by one browser editor request or response. */
+  readonly maxEditorBytes: number
   /** Select the original SiYuan workspace or the portable WikiMan source and application. */
   readonly runtime: WikiRuntime
   /** Historical native store IDs belonging to this imported library; citations resolve against the current store. */
@@ -64,6 +69,7 @@ export default class WikiMan extends TypertRemoteService {
 
   static Config: z<Config> = z.object({
     runtime: z.union(['portable', 'siyuan'] as const).default('portable'),
+    maxEditorBytes: z.number().step(1).min(1024).max(512 * 1024 * 1024).default(32 * 1024 * 1024),
     legacyCitationStoreIds: z.array(z.string().pattern(/^[a-f0-9]{64}$/u)).default([]),
     kernelPath: z.string().required(),
     appDir: z.string().required(),
@@ -129,6 +135,18 @@ export default class WikiMan extends TypertRemoteService {
       this.source = await this.openSource(await this.replica.activeRoot())
     }
     this.registerTools()
+    if (this.config.runtime === 'portable') {
+      const hash = createHash('sha256').update(await readFile(join(this.config.appDir, 'stage/build/portable/boot.js'))).digest('hex')
+      this.ctx.on('webserver/index-inject', (table) => {
+        table.push({ kind: 'global', name: '__DSH_WIKIMAN_ASSETS__', value: hash })
+      })
+    }
+    if (this.config.runtime === 'portable') this.ctx.inject(['webServer', 'connection'], (ctx) => {
+      ctx.effect(() => installEditorRelay(ctx, () => {
+        if (!this.source) throw new WikiError('kernel_unavailable')
+        return this.source.kernel
+      }, this.config), 'wikiman: authenticated editor transport')
+    })
   }
 
   private async openSource(root: string): Promise<LiveSource> {
@@ -380,7 +398,7 @@ export default class WikiMan extends TypertRemoteService {
     }
     this.viewPeers.set(id, detach)
     peer.signal.addEventListener('abort', close, { once: true })
-    return editor
+    return this.ctx.get('webServer') && this.ctx.get('connection') ? { ...editor, baseUrl: EDITOR_API_PATH } : editor
   }
 
   private async owner<T>(operation: () => T | Promise<T>, kind: 'live' | 'maintenance' = 'live'): Promise<T> {

@@ -6,11 +6,15 @@
 
 ## Build
 
+将 `WIKIMAN_PREBUILT_APP_DIR` 设为输出目录之外、已经构建完成的 `wiki-app` 绝对路径，可让不同服务端平台复用相同前端资源。构建仍会为当前机器编译 Go 内核和 CLI。Linux 的 SQLite 需要 C 编译器；通过 `wiki-pdf` 的 PDF 导出仅支持 macOS。
+
 使用 Node 24.9 或更新版本、pnpm，以及 `wiki-kernel/go.mod` 指定的 Go 工具链。在仓库根目录运行 `bash native/wikiman/build.sh`。app 使用独立锁文件和仅用于构建的 package，不启动 Electron 或 Node 应用。产物通过 DSH profile 启动。
 
 产物为 `native/wikiman/out/bin/{wiki-kernel,wiki-cli}` 和 `native/wikiman/out/wiki-app`。macOS 上还会通过 Xcode 命令行工具构建 `bin/wiki-pdf`。设置 `WIKIMAN_OUT_DIR` 可指定其他绝对输出目录；设置 `WIKIMAN_PANDOC_ARCHIVE` 为当前平台可信的 Pandoc ZIP 可启用 Word 导出。HTML 和原生文档导出不依赖 Pandoc。产物不包含原始 `siyuan-kernel` 或 `siyuan-app`。
 
 将插件的 `kernelPath` 和 `appDir` 指向这些产物，将 `sourceRoot` 指向包含 `store.json` 的 portable 知识库。DSH 通过私有编辑器通道传入当前界面语言；字典、主题、字体、表情、图标、Lute、PDF 和富文本编辑器资源均在本地打包。
+
+portable 编辑器通过私有通道接受回环 Web 窗口、精确的 `tauri://localhost` 和 `dsh-app://app` 应用源，以及与编辑器文档同源的远程父页面。远程内容和事件请求经过 DSH 认证；内核仍位于私有回环地址。
 
 ## Verify
 

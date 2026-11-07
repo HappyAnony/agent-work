@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+    <title>AgentWork</title>
+    <link rel="stylesheet" href="remote.css">
+    <script src="remote.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <h1></h1><p id="description"></p>
+      <form>
+        <label><span id="addressLabel"></span><input id="address" type="url" autocomplete="url" required spellcheck="false"></label>
+        <label><span id="tokenLabel"></span><input id="token" type="password" autocomplete="off"></label>
+        <p id="hint"></p><p id="error" role="alert" hidden></p>
+        <button type="submit"></button>
+      </form>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,34 @@
+# Bilingual-pair consistency record for deploying-agentwork-server.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/cookbook/deploying-agentwork-server.md
+/:
+  en: 481230523c7d14a3
+  zh: 3997c3cbd12c766c
+/deploy-an-agentwork-server:
+  en: b3dc74cf5d632808
+  zh: 133a0bc54c119313
+/deploy-an-agentwork-server/summary:
+  en: 76a05c55385a6846
+  zh: 64150793683b614c
+/deploy-an-agentwork-server/table-of-contents:
+  en: 6d2202c2819327cd
+  zh: 1e4261a99a2018c2
+/deploy-an-agentwork-server/prepare-the-server:
+  en: 1a44caedafc3f7e7
+  zh: 9e30e380541b3102
+/deploy-an-agentwork-server/connect-through-ssh:
+  en: d9a7433248191b24
+  zh: 54669edf9a60212d
+/deploy-an-agentwork-server/package-the-mac-client:
+  en: 28cc15307519c3ee
+  zh: 50196351ddfd5166
+/deploy-an-agentwork-server/verify-the-workflow:
+  en: 6641d2abe894fc9c
+  zh: b2a99abb66a512ac
+/deploy-an-agentwork-server/operation-and-limits:
+  en: c39c7196ccf25b05
+  zh: fcf499af44d156ca
+/deploy-an-agentwork-server/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269

@@ -36,6 +36,8 @@ export function recoverableUIValidation(error: unknown, guarded = false): boolea
 
 type Phase = "active" | "freezing" | "frozen" | "failed" | "stale" | "closed";
 interface Options {
+    hosted?: boolean;
+    streamBaseUrl?: string;
     fetch?: typeof fetch;
     socket?: (url: string, protocols: string[]) => WebSocket;
     dirty?: (view: EditorView, dirty: boolean) => void;
@@ -86,6 +88,7 @@ export function rawProperty(source: string, property: string): string {
 export class EditorSession {
     readonly view: EditorView;
     private readonly base: string;
+    private readonly streamBase: string;
     private readonly fetcher: typeof fetch;
     private readonly options: Options;
     private phase: Phase = "active";
@@ -104,11 +107,16 @@ export class EditorSession {
     private readonly staleListeners = new Set<() => void>();
     constructor(baseUrl: string, view: EditorView, options: Options = {}) {
         const base = new URL(baseUrl);
-        if (base.protocol !== "http:" || !["127.0.0.1", "[::1]"].includes(base.hostname) || base.username || base.password || base.pathname !== "/" || base.search || base.hash) {
+        const hosted = options.hosted === true && base.pathname === "/api/wikiman" &&
+            typeof location !== "undefined" && base.protocol === location.protocol && base.host === location.host;
+        if (!hosted && (base.protocol !== "http:" || !["127.0.0.1", "[::1]"].includes(base.hostname) || base.username || base.password || base.pathname !== "/" || base.search || base.hash) || base.username || base.password || base.search || base.hash) {
             throw new SessionError("invalid_server_origin");
         }
         if (!view.storeId || !/^\d{19}$/.test(view.pageId) || !view.sessionId || !view.ticket || !["wikiDesktop", "docxSingle"].includes(view.mode)) { throw new SessionError("invalid_editor_view"); }
-        this.base = base.origin;
+        this.base = hosted ? base.href.replace(/\/$/, "") : base.origin;
+        const stream = new URL(options.streamBaseUrl ?? this.base);
+        if (hosted && !["http:", "https:"].includes(stream.protocol)) { throw new SessionError("invalid_server_origin"); }
+        this.streamBase = hosted ? stream.origin + "/api/wikiman" : this.base;
         this.view = Object.freeze({...view, ...(view.entryDocument ? {entryDocument: Object.freeze({...view.entryDocument})} : {})});
         // Browser-native fetch checks its receiver; invoking it as a session
         // member otherwise throws Illegal invocation (Node mocks do not).
@@ -144,7 +152,7 @@ export class EditorSession {
         const prefix = JSON.stringify(payload);
         const body = rawAst === undefined ? prefix : prefix.slice(0, -1) + ',"ast":' + rawAst + "}";
         if (new TextEncoder().encode(body).length > 16 * 1024 * 1024) { throw new SessionError("request_limit"); }
-        const {response, bytes} = await this.fetchBytes(this.base + "/v1/content", {method: "POST", headers: {...this.headers(), "Content-Type": "application/json"}, body, credentials: "omit", redirect: "error", cache: "no-store"});
+        const {response, bytes} = await this.fetchBytes(this.base + "/v1/content", {method: "POST", headers: {...this.headers(), "Content-Type": "application/json"}, body, credentials: "same-origin", redirect: "error", cache: "no-store"});
         const raw = new TextDecoder("utf-8", {fatal: true}).decode(bytes);
         const envelope = JSON.parse(raw);
         if (envelope.protocolVersion !== 1) { throw new SessionError("protocol_mismatch", raw); }
@@ -180,7 +188,7 @@ export class EditorSession {
         if (new TextEncoder().encode(body).length > limit * 1024 * 1024) { throw new SessionError("request_limit"); }
         const {response, bytes} = await this.fetchBytes(this.base + "/v1/ui", {
             method: "POST", headers: {...this.headers(), "Content-Type": "application/json"},
-            body, credentials: "omit", redirect: "error", cache: "no-store",
+            body, credentials: "same-origin", redirect: "error", cache: "no-store",
         });
         if (epoch !== this.epoch || (this.phase !== "active" && !(queued && this.phase === "freezing"))) {
             throw new SessionError("stale_response");
@@ -484,7 +492,7 @@ export class EditorSession {
         this.active(); const epoch = this.epoch;
         const url = new URL(this.base + "/v1/resource");
         url.search = new URLSearchParams({storeId: this.view.storeId, pageId: this.view.pageId, name, ...(doc ? {boxId: doc.boxId, docId: doc.docId} : {})}).toString();
-        const {response, bytes: data} = await this.fetchBytes(url.toString(), {headers: this.headers(), credentials: "omit", redirect: "error", cache: "no-store"});
+        const {response, bytes: data} = await this.fetchBytes(url.toString(), {headers: this.headers(), credentials: "same-origin", redirect: "error", cache: "no-store"});
         if (!response.ok) { throw new SessionError("asset_read_failed"); }
         if (epoch !== this.epoch || this.phase !== "active") { throw new SessionError("stale_response"); }
         // Never trust an uploaded HTML/SVG MIME type as active browser content.
@@ -547,7 +555,7 @@ export class EditorSession {
     subscribe(onEvent: (event: Readonly<Record<string, unknown>>, view: EditorView) => void): Promise<void> {
         this.active();
         if (this.socket) { throw new SessionError("already_subscribed"); }
-        const url = new URL(this.base + "/v1/events"); url.protocol = "ws:";
+        const url = new URL(this.streamBase + "/v1/events"); url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
         url.search = new URLSearchParams({storeId: this.view.storeId, pageId: this.view.pageId}).toString();
         const epoch = this.epoch;
         const socket = (this.options.socket ?? ((url, protocols) => new WebSocket(url, protocols)))(url.toString(), ["wiki.v1", "wiki.editor." + this.view.ticket, "wiki.session." + this.view.sessionId]);

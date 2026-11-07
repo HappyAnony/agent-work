@@ -2,9 +2,9 @@ import type { FileSaveResult } from '@deepseek-ai/dsh-client-ui-file-actions/typ
 /** Origin-scoped boot, native directory selection, host paths of picked files, and update presentation with native confirmation actions. */
 
 import type { DesktopChannelState, DesktopChannelChangeResult } from '@deepseek-ai/dsh-client-ui-settings-general/types'
-import type { DesktopShortcutInput, ShortcutConfigSnapshot, ShortcutSaveResult } from '@deepseek-ai/dsh-client-shortcuts/protocol'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { DESKTOP_IPC, SCHEME, type DshDesktopProductApi, type DesktopUpdatePresentation } from './ipc.ts'
+import { desktopKeyboardApi } from './preload-keyboard.ts'
 import { PLATFORM_IPC } from './platform-ipc.ts'
 import { markDocumentPlatform, syncWindowFullscreen } from './preload-platform.ts'
 import { syncNativeTheme } from './preload-theme.ts'
@@ -34,37 +34,7 @@ function createProductApi(): DshDesktopProductApi {
       }) },
     },
     deviceInfo: () => ipcRenderer.invoke(DESKTOP_IPC.deviceInfo) as Promise<string>,
-    keyboard: {
-      closeWindow: revision => ipcRenderer.invoke(DESKTOP_IPC.shortcutsCloseWindow, revision) as Promise<void>,
-      subscribe: (listener) => {
-        const handle = (_event: Electron.IpcRendererEvent, input: DesktopShortcutInput): void => {
-          if (input.kind === 'iframe') {
-            const element = document.activeElement
-            if (!(element instanceof HTMLIFrameElement) || !element.isConnected
-              || !element.matches('iframe[data-sidebar-browser-frame], iframe[data-html-preview]')) return
-            if (input.frameName === '' || element.name !== input.frameName) return
-          }
-          if (input.kind === 'webview') {
-            const element = document.activeElement
-            if (element?.matches('webview[data-sidebar-browser-frame]') !== true || !element.isConnected
-              || input.frameName === '' || element.getAttribute('name') !== input.frameName) return
-          }
-          listener(input)
-        }
-        ipcRenderer.on(DESKTOP_IPC.shortcutsInput, handle)
-        return () => { ipcRenderer.off(DESKTOP_IPC.shortcutsInput, handle) }
-      },
-    },
-    shortcuts: {
-      get: definitions => ipcRenderer.invoke(DESKTOP_IPC.shortcutsGet, definitions) as Promise<ShortcutConfigSnapshot>,
-      edit: (edit, revision) => ipcRenderer.invoke(DESKTOP_IPC.shortcutsEdit, edit, revision) as Promise<ShortcutSaveResult>,
-      recording: active => ipcRenderer.invoke(DESKTOP_IPC.shortcutsRecording, active) as Promise<void>,
-      subscribe(listener) {
-        const handle = (_event: Electron.IpcRendererEvent, snapshot: ShortcutConfigSnapshot): void => { listener(snapshot) }
-        ipcRenderer.on(DESKTOP_IPC.shortcutsChanged, handle)
-        return () => { ipcRenderer.off(DESKTOP_IPC.shortcutsChanged, handle) }
-      },
-    },
+    ...desktopKeyboardApi(),
     updates: {
       channels: {
         get: () => ipcRenderer.invoke(DESKTOP_IPC.updatesChannelGet) as Promise<DesktopChannelState>,

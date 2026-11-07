@@ -6,11 +6,15 @@ This source copy builds the modified `wiki-kernel` and `wiki-app` used by the [D
 
 ## Build
 
+Set `WIKIMAN_PREBUILT_APP_DIR` to an absolute, already-built `wiki-app` directory outside the output to reuse identical frontend resources across server platforms. The build still compiles the Go kernel and CLI for the current machine. Linux needs a C compiler for SQLite; PDF export through `wiki-pdf` is available only on macOS.
+
 Use Node 24.9 or newer, pnpm and the Go toolchain selected by `wiki-kernel/go.mod`. Run `bash native/wikiman/build.sh` from the repository root. The app has an isolated lockfile and build-only package; it does not launch an Electron or Node application. Start the resulting runtime through a DSH profile.
 
 The output is `native/wikiman/out/bin/{wiki-kernel,wiki-cli}` and `native/wikiman/out/wiki-app`. On macOS, Xcode command line tools also build `bin/wiki-pdf`. Set `WIKIMAN_OUT_DIR` to select another absolute output directory. Set `WIKIMAN_PANDOC_ARCHIVE` to a trusted Pandoc ZIP for the current platform to enable Word export. HTML and native document export do not need Pandoc. The output does not include the original `siyuan-kernel` or `siyuan-app`.
 
 Point the plugin's `kernelPath` and `appDir` at these outputs and `sourceRoot` at a portable store containing `store.json`. DSH supplies the active interface language through the private editor channel; dictionaries, themes, fonts, emoji, icons, Lute, PDF and rich-editor resources are packaged locally.
+
+The portable editor accepts loopback Web windows, the exact `tauri://localhost` and `dsh-app://app` application origins, and a remote parent with the same origin as the editor document. Remote content and event requests pass through DSH admission; the kernel stays on private loopback.
 
 ## Verify
 

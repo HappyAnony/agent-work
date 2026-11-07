@@ -27,6 +27,8 @@ English | [中文](README.zh.md)
 
 Use [`DshClientManifest`](../../util/package-manifest/README.md) for the declaration type. Client-modules validates the JSON and owns the normalized boot graph.
 
+Packaged clients use `bundleDigests()` to compare SHA-256 hashes of the captured browser entry bytes with their local resource inventory. These hashes identify executable content independently of the filesystem-based HMR revision; the [frontend server](../../host/frontend-static/README.md) publishes them in its authenticated bootstrap response.
+
 Use it when you compose or build a browser client plugin: the package turns a package's `dsh.client` declaration into a loadable browser bundle with no per-plugin wiring. It activates with the web composition; the shell boots it before any plugin runs.
 
 ### Declaring a client plugin

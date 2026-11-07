@@ -27,6 +27,8 @@ kind: "package-reference"
 
 声明类型使用 [`DshClientManifest`](../../util/package-manifest/README.zh.md)。Client-modules 校验 JSON，并持有归一化后的启动图。
 
+本地打包客户端通过 `bundleDigests()` 将已捕获浏览器入口字节的 SHA-256 与本地资源清单比较。这些摘要独立于基于文件系统的 HMR 版本，标识实际执行内容；[前端服务](../../host/frontend-static/README.zh.md) 在已认证的 bootstrap 响应中提供它们。
+
 组合或构建浏览器客户端插件时使用它：本包把包的 `dsh.client` 声明变成可加载的浏览器 bundle，无需任何逐插件接线。它随 web 组合激活；外壳在任何插件运行前启动它。
 
 ### 声明客户端插件

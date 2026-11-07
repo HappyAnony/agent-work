@@ -27,6 +27,8 @@ Serve the built Web shell to browsers from its configured distribution directory
 
 Compose this plugin in a browser-facing host that serves the built Web shell: it claims the webserver's fallback seat and answers every request no named route matches. It needs one config value — where the built frontend's `index.html` lives.
 
+When `clientModules` is available, authenticated `GET /api/client/bootstrap` returns protocol version 1, the SHA-256 of the raw index, captured client-entry digests and the browser Peer’s structured index injections. The response is not cached. Packaged clients verify these inputs before starting local code; this endpoint does not include an owner token.
+
 ### Minimal configuration
 
 ```yaml

@@ -1749,7 +1749,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-host-frontend-static`
 
 - `inject`: `webServer` · `connection`
-- `source`: [`packages/host/frontend-static/src/index.ts:34`](../packages/host/frontend-static/src/index.ts)
+- `source`: [`packages/host/frontend-static/src/index.ts:35`](../packages/host/frontend-static/src/index.ts)
 
 ```ts config-catalog
 /** Plugin config: the dist anchor. */
@@ -4823,11 +4823,13 @@ export interface Config {
 ## `@deepseek-ai/dsh-wikiman`
 
 - `inject`: `typert` · `subprocess` · `tools`
-- `source`: [`packages/experimental/wikiman/src/index.ts:19`](../packages/experimental/wikiman/src/index.ts)
+- `source`: [`packages/experimental/wikiman/src/index.ts:22`](../packages/experimental/wikiman/src/index.ts)
 
 ```ts config-catalog
 /** WikiMan runtime, local library and the workspace allowed to query it. */
 export interface Config extends KernelConfig, ReplicaConfig {
+  /** Maximum bytes transferred by one browser editor request or response. */
+  readonly maxEditorBytes: number
   /** Select the original SiYuan workspace or the portable WikiMan source and application. */
   readonly runtime: WikiRuntime
   /** Historical native store IDs belonging to this imported library; citations resolve against the current store. */

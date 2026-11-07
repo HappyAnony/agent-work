@@ -23,6 +23,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
+import type {} from '@deepseek-ai/dsh-client-modules'
 
 /** Stable Cordis plugin name. */
 export const name = 'frontend-static'
@@ -133,6 +134,17 @@ async function serveStatic(
 export function apply(ctx: Context, config: Config): void {
   const distIndex = config.distIndex
   const distRoot = dirname(distIndex)
+  ctx.inject(['clientModules'], (scope) => {
+    scope.effect(() => scope.connection.fetch.register({
+      path: '/api/client/bootstrap', methods: ['GET'], requestBody: 'buffered',
+      fetch: async () => Response.json({
+        protocolVersion: 1,
+        frontendHash: createHash('sha256').update(await readFile(distIndex)).digest('hex'),
+        bundles: scope.clientModules.bundleDigests(),
+        injections: scope.webServer.collectIndexInjections(scope.connection.browserPeer),
+      }, { headers: { 'cache-control': 'no-store' } }),
+    }), 'frontend-static: authenticated packaged-client bootstrap')
+  })
   // Connection's browser authentication writes the token exchange's 303 or
   // the 401 through a writeHead/end response; capture it as a Fetch response.
   // The answer stays a 401 unless Connection writes another one.

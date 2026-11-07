@@ -5,19 +5,19 @@ import {initializePortableUI, UIConfiguration} from "./ui";
 import {markPortableWindow} from "./boundary";
 import {mountEmptyPortableDesktop} from "./layout";
 import {addScript} from "../protyle/util/addScript";
+import {validEditorParentOrigin} from "./parentOrigin";
 
 async function boot():Promise<void>{
     const params=new URLSearchParams(location.hash.slice(1));
     const parentOrigin=params.get("parentOrigin"),channelId=params.get("channelId");
     if(window.parent===window || !parentOrigin || !channelId || !/^[a-zA-Z0-9-]{16,128}$/.test(channelId)){throw new SessionError("invalid_parent_identity");}
-    const origin=new URL(parentOrigin);
-    if(!((origin.protocol==="http:" && ["127.0.0.1","localhost","[::1]"].includes(origin.hostname)) || origin.protocol==="tauri:" && origin.host==="localhost") || parentOrigin!==(origin.protocol==="tauri:"?"tauri://localhost":origin.origin)){throw new SessionError("invalid_parent_identity");}
+    if(!validEditorParentOrigin(parentOrigin)){throw new SessionError("invalid_parent_identity");}
     // Only public channel information is present in the fragment. Capabilities
     // arrive once, on a verified private port, never in browser persistence.
     markPortableWindow();
     installEditorFrameBridge({parentWindow:window.parent,parentOrigin,channelId,mount:async(payload,dirty,signal)=>{
-        if(payload.baseUrl!==location.origin){throw new SessionError("invalid_server_origin");}
-        const session=new EditorSession(payload.baseUrl,payload.view,{dirty:(_view,value)=>dirty(value)});
+        if(new URL(payload.baseUrl).protocol !== location.protocol || new URL(payload.baseUrl).host !== location.host){throw new SessionError("invalid_server_origin");}
+        const session=new EditorSession(payload.baseUrl,payload.view,{dirty:(_view,value)=>dirty(value),hosted: new URL(payload.baseUrl).pathname === "/api/wikiman",streamBaseUrl:payload.streamBaseUrl});
         const [bootstrap, local] = await Promise.all([
             session.requestUI("/api/system/getConf") as Promise<{conf?: UIConfiguration}>,
             (session.requestUI("/api/storage/getLocalStorage") as Promise<Record<string, unknown>>).catch(error => {

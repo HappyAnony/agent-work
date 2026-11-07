@@ -1,8 +1,10 @@
+import {validEditorParentOrigin} from "./parentOrigin";
 import {DocumentKey, EditorView, SessionError} from "./session";
 import {ProtyleBinding} from "./protyle";
 
 export interface FrameMount {
     baseUrl: string;
+    streamBaseUrl?: string;
     view: EditorView;
     document: DocumentKey | null;
     focus?: {blockId:string;hash:string};
@@ -56,9 +58,7 @@ export function installEditorFrameBridge(options: {
     mount(payload: FrameMount, reportDirty: (dirty: boolean) => void, signal: AbortSignal): Promise<FrameEditor>;
     timeoutMs?: number;
 }): () => void {
-    if (!options.channelId || options.parentOrigin === "*" || options.parentOrigin === "null") {throw new SessionError("invalid_parent_identity");}
-    const parentURL=new URL(options.parentOrigin);
-    if (!(["http:","https:"].includes(parentURL.protocol) || parentURL.protocol==="tauri:" && parentURL.host==="localhost") || parentURL.username || parentURL.password || parentURL.search || parentURL.hash) {throw new SessionError("invalid_parent_identity");}
+    if (!options.channelId || !validEditorParentOrigin(options.parentOrigin)) {throw new SessionError("invalid_parent_identity");}
     let port: MessagePort | null=null, binding: FrameEditor | null=null, used=false, disposed=false;
     const lifetime = new AbortController();
     const stop=()=>{disposed=true;lifetime.abort();window.removeEventListener("message",receive);port?.close();binding?.detach();};

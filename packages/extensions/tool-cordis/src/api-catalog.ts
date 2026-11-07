@@ -604,6 +604,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'the graph served as `window.__DSH_BOOT__`.',
       },
       {
+        signature: 'bundleDigests(): Readonly<Record<string, string>>',
+        description: 'Fingerprint the captured browser entry bytes for a packaged remote client.',
+        parameters: [],
+        returns: 'SHA-256 digests keyed by the currently composed package identities.',
+      },
+      {
         signature: 'clientPath(id: string): string | undefined',
         description: 'Absolute path of an entry\'s client bundle.',
         parameters: [{ name: 'id', description: 'entry id (package name).' }],

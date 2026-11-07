@@ -70,6 +70,19 @@ function declare(slots: SlotRegistry): () => void {
 }
 
 describe('ui-settings-models apply', () => {
+  it('keeps credential onboarding available in a packaged remote client', async () => {
+    vi.stubGlobal('dshDesktop', {})
+    vi.stubGlobal('__DSH_TRANSPORT__', { ownsHost: false })
+    const { ctx, slots } = await bench()
+    onTestFinished(() => ctx.fiber.dispose())
+    declare(slots)
+    await ctx.plugin({ inject: [...inject], apply }).await()
+    expect(slots.entries('settings.onboarding').map(entry => entry.options.id)).toEqual(['welcome-notice', 'deepseek-official'])
+    const entry = slots.entries('settings.onboarding').find(row => row.options.id === 'deepseek-official')!
+    const injected = entry.inject!()
+    expect(injected.automatic).toBe(true)
+  })
+
   it('keeps manual credential onboarding available when the native shell owns automatic onboarding', async () => {
     const { ctx, slots } = await bench()
     declare(slots)

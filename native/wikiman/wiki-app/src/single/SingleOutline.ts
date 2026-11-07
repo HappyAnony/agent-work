@@ -174,7 +174,7 @@ export class SingleOutline {
     }
 
     private readCollapsedState(): boolean {
-        return isPortableWindow() && window.siyuan.storage[SCOPED_OUTLINE_COLLAPSED_KEY] === true;
+        return isPortableWindow() && (window.matchMedia("(max-width: 620px)").matches || window.siyuan.storage[SCOPED_OUTLINE_COLLAPSED_KEY] === true);
     }
 
     private applyCollapsedState(collapsed: boolean, persist = true): void {

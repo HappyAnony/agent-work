@@ -1,0 +1,14 @@
+:root { color-scheme: light dark; font: 14px -apple-system, BlinkMacSystemFont, sans-serif; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: light-dark(#fafafa, #202020); color: light-dark(#202020, #ededed); }
+main { width: min(420px, calc(100vw - 64px)); padding: 40px 0; }
+h1 { font-size: 24px; font-weight: 500; margin: 0 0 16px; }
+p { line-height: 1.6; color: light-dark(#666, #aaa); }
+form, label { display: flex; flex-direction: column; gap: 10px; }
+form { margin-top: 28px; gap: 18px; }
+input, button { box-sizing: border-box; width: 100%; font: inherit; border-radius: 8px; padding: 12px; }
+input { border: 1px solid light-dark(#ccc, #555); background: light-dark(#fff, #292929); color: inherit; }
+button { border: 0; background: light-dark(#285dd9, #7199ff); color: light-dark(#fff, #111); cursor: pointer; }
+button:disabled { opacity: .6; cursor: progress; }
+#hint { font-size: 13px; margin: 0; }
+#error { margin: 0; color: light-dark(#b62323, #ff9696); }
+@media (pointer: coarse) { input { font-size: 16px; } }

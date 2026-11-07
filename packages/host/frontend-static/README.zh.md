@@ -27,6 +27,8 @@ kind: "package-reference"
 
 在服务已构建 Web 壳的浏览器宿主中组合本插件：它占据 webserver 的回退席位，并应答所有未被具名路由命中的请求。它只需要一个配置值——已构建前端的 `index.html` 位于何处。
 
+当 `clientModules` 可用时，已认证的 `GET /api/client/bootstrap` 返回协议版本 1、原始 index 的 SHA-256、已捕获的客户端入口摘要及浏览器 Peer 的结构化 index 注入项。响应不缓存。本地打包客户端先校验这些输入再启动本地代码；此接口不包含 owner token。
+
 ### 最小配置
 
 ```yaml

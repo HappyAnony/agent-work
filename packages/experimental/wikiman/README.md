@@ -59,6 +59,8 @@ Run `pnpm dsh --profile agentwork --patch /path/to/wiki.patch.yml --host 127.0.0
 
 ### Use the portable workbench
 
+Portable mode supports a Linux or macOS Host with remote Web and mobile browsers, or a Mac client that packages the matching frontend locally. Follow [deploying an AgentWork server](../../../docs/cookbook/deploying-agentwork-server.md) for profile preparation, SSH access and packaging.
+
 Build the modified source pair with `bash native/wikiman/build.sh`; see the [runtime build instructions](../../../native/wikiman/README.md) for prerequisites, export helpers and licenses. Use `native/wikiman/out/bin/wiki-kernel` and `native/wikiman/out/wiki-app`, plus a portable store whose root contains `store.json`. Mount the plugin with the following patch. Replace the four paths with absolute local paths. The workspace path is the directory to select when creating a Chat Session. The log upload setting prevents the official DeepSeek API from receiving the additional canonical Session log. The selected model still receives the excerpts used to answer the question.
 
 ```yaml
@@ -78,6 +80,7 @@ Start with `pnpm dsh --profile agentwork --patch /path/to/wiki.patch.yml --port 
 
 Select **Page actions → Manage page** to rename the selected page, change its parent and sort rank, or send it and its active descendants to the **Recycle bin**. Restoring a parent also restores the descendants recycled with it.
 
+<a id="import-a-legacy-library"></a>
 ### Import a legacy library
 
 Close legacy WikiMan and open **Knowledge base → Page actions → Library tools → Import legacy library**. Enter the folder containing `page.db`, an existing destination folder outside the legacy library, and a name. Preview the file inventory and native validation warnings. **Create portable copy** publishes a new directory without editing the legacy library. Set `sourceRoot` to the reported path and restart DSH to use that store.
@@ -105,6 +108,8 @@ The [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-wikim
 In SiYuan mode the Host starts IronMan’s original kernel for the selected page workspace. A one-use loopback handoff sets the native HttpOnly session cookie. A same-origin frame waits for native editor transactions before switching pages. The browser connection holds the kernel lease and releases it when the tab closes. Agent reads consume committed document files. DSH records page recycle status in a separate SQLite table.
 
 In portable mode the Host starts the source-built Wiki kernel on a private loopback port and owns its process and credential. WikiMan account, membership and official cloud services are removed; DSH model authentication remains available. The browser connects the supplied editor assets with a page-scoped view on a private message channel. Changing Wiki pages drains every tab before the Host revokes the old views. The browser connection owns these leases and releases them on disconnect. Switching to Chat parks the editor without reloading its iframe. Browser Remotes serve the local owner. The tool executor checks the Session's original workspace directory on every call.
+
+The Web composition relays portable editor requests and events through authenticated `/api/wikiman` routes. Browser results carry a document-relative `baseUrl`; non-Web consumers retain the private loopback URL. The relay forwards page tickets and session identifiers, never the kernel management credential or the DSH credential. Assets under `/stage`, `/appearance` and `/emojis` remain public application code. `maxEditorBytes` bounds each editor transfer. A packaged remote client serves these assets locally and sends content requests to the selected Host.
 
 The page types are labeled `doc`, `wiki` and `table` in both interface languages. The page tree, creation dialog and recycle bin use document, workspace and spreadsheet glyphs for these types. Page titles remain user-defined.
 
@@ -148,7 +153,7 @@ The schemas are stable within the workspace, and tool results append to the exis
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- The browser and Host run on the same machine. SiYuan mode requires a Web origin on `http://127.0.0.1` and the original WikiMan library format. SiYuan keeps its per-workspace settings and creates an access code when the workspace has none.
+- Original SiYuan mode requires the browser and Host on the same machine, a Web origin on `http://127.0.0.1`, and the original WikiMan library format. Remote deployment uses portable mode. SiYuan keeps its per-workspace settings and creates an access code when the workspace has none.
 - The workbench opens and creates Wiki spaces and Docx pages. Standalone table pages can be created and managed as metadata.
 - Portable sync runs on demand over a shared filesystem. Conflicting versions require manual reconciliation. The Agent tools are read-only.
 - Search uses the kernel's literal matching and bounded page scans. The citation opens the document and indicates a version change when the original excerpt is historical.

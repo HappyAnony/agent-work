@@ -52,6 +52,16 @@ it('leaves browser failure presentation with the Web boot kernel', async () => {
   expect(boot.run).toHaveBeenCalledWith(undefined)
 })
 
+it('connects packaged frontends to a remote Host without granting local Host ownership', async () => {
+  document.body.innerHTML = '<div id="root"></div>'
+  const gate = Promise.withResolvers<undefined>()
+  vi.stubGlobal('__DSH_BOOT_READY__', gate)
+  vi.stubGlobal('dshDesktopBoot', { ready: async () => ({ injections: [], streamBaseUrl: 'https://agentwork.internal', ownsHost: false }), failed: vi.fn() })
+  await import('../src/main.ts')
+  await gate.promise
+  expect((globalThis as { __DSH_TRANSPORT__?: object }).__DSH_TRANSPORT__).toEqual({ ownsHost: false, streamBaseUrl: 'https://agentwork.internal' })
+})
+
 it.each(['root', 'readiness'])('reports missing %s before client plugin startup', async (missing) => {
   if (missing !== 'root') document.body.innerHTML = '<div id="root"></div>'
   const failed = vi.fn(async () => {})

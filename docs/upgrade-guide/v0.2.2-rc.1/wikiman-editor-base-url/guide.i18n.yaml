@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.2-rc.1/wikiman-editor-base-url/guide.md
+/:
+  en: c0b035d7cbc3a808
+  zh: 00c35ca406c2c0c7
+/resolve-wikiman-editor-urls-against-the-document:
+  en: 12d2bbe9b276a728
+  zh: 1e5438ed027086dd
+/resolve-wikiman-editor-urls-against-the-document/change:
+  en: 889628c640a6e80c
+  zh: 4bd0a7bce9cb0db1
+/resolve-wikiman-editor-urls-against-the-document/migration:
+  en: cf64d3e2147cb3fc
+  zh: 20e090c5b1e7110a

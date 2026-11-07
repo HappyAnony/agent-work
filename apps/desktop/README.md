@@ -10,6 +10,8 @@ English | [中文](README.zh.md)
 
 Desktop runs the Harness workspace in a native application. This reference covers application behavior, development and integration; the packaging, Windows signing and publication guides own build and release operations.
 
+An optional remote-only Mac distribution packages the Web, plugin and Wiki frontends locally and connects to a separately running Host. Closing this client leaves server tasks running. See [deploying an AgentWork server](../../docs/cookbook/deploying-agentwork-server.md) for its build and connection workflow; the remaining sections describe the ordinary Desktop distribution.
+
 ## Table of Contents
 
 - [Application overview](#application-overview)

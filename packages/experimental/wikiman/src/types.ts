@@ -33,6 +33,7 @@ export interface WikiListing<T> {
 
 /** Kernel-issued capability scoped to one WikiMan page. */
 export interface WikiEditorView {
+  /** Editor API base, relative to the document in Web compositions and private loopback otherwise. */
   readonly baseUrl: string
   readonly view: {
     readonly storeId: string

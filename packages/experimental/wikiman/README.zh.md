@@ -59,6 +59,8 @@ pnpm dsh plugin --profile agentwork add --workspace-root link:./packages/experim
 
 ### 使用 portable 工作台
 
+portable 模式支持 Linux 或 macOS Host，可由远程 Web、移动浏览器或本地打包匹配前端的 Mac 客户端访问。配置准备、SSH 访问和打包步骤见 [部署 AgentWork 服务端](../../../docs/cookbook/deploying-agentwork-server.zh.md)。
+
 运行 `bash native/wikiman/build.sh` 构建改造版源码，依赖、导出辅助工具和许可证见 [runtime 构建说明](../../../native/wikiman/README.zh.md)。使用 `native/wikiman/out/bin/wiki-kernel`、`native/wikiman/out/wiki-app`，以及一份根目录包含 `store.json` 的 portable 知识库。用下面的配置挂载插件，将四个路径换成本机绝对路径。创建 Chat 会话时选择配置的工作区目录。关闭日志上传后，官方 DeepSeek API 不再收到额外附带的完整会话日志。用于回答问题的摘录仍会发送给所选模型。
 
 ```yaml
@@ -78,6 +80,7 @@ pnpm dsh plugin --profile agentwork add --workspace-root link:./packages/experim
 
 选择 **页面操作 → 管理页面**，可以重命名所选页面、更改父页面和同级顺序，或将它和未删除的子页移入 **回收站**。恢复父页面时，同时恢复与它一起回收的子页。
 
+<a id="import-a-legacy-library"></a>
 ### 导入旧知识库
 
 关闭旧版 WikiMan，打开 **知识库 → 页面操作 → 知识库工具 → 导入旧库**。输入包含 `page.db` 的目录、旧库之外的一个现有目标目录和名称。预览文件清单和内核校验警告，再选择 **创建 portable 副本**。导入会生成新目录，旧库原样保留。将 `sourceRoot` 改为界面显示的新路径，重启 DSH 即可打开新库。
@@ -105,6 +108,8 @@ pnpm dsh plugin --profile agentwork add --workspace-root link:./packages/experim
 在思源模式下，Host 为选中的 WikiMan 页面工作区启动 IronMan 原版内核。浏览器通过一次性的本机登录入口取得思源的 HttpOnly 会话 Cookie。切换页面前，同源 iframe 等待原版编辑器的保存事务。浏览器连接持有内核租约，标签页关闭时释放。Agent 读取已落盘的文档。DSH 使用独立的 SQLite 表记录页面回收状态。
 
 在 portable 模式下，Host 在独立的回环端口启动源码构建的 Wiki 内核，持有其进程和凭据。WikiMan 账号、会员及官方云服务已移除，DSH 模型认证继续可用。浏览器通过私有消息通道将页面级视图交给编辑器。切换 Wiki 页面时，先排空全部标签的保存队列，再由 Host 撤销旧视图。浏览器连接持有这些租约，断开时会释放。切到 Chat 时保留编辑器实例，返回后无需重新加载。浏览器 Remote 面向本地所有者。每次执行工具时都会检查 Session 的初始工作区目录。
+
+Web 组合通过已认证的 `/api/wikiman` 路由转发 portable 编辑器请求和事件。浏览器结果中的 `baseUrl` 相对于当前文档；非 Web 调用方仍使用私有回环 URL。转发只携带页面 ticket 和 session 标识，不携带内核管理凭据或 DSH 凭据。`/stage`、`/appearance` 和 `/emojis` 下的资源仍是公开的应用代码。`maxEditorBytes` 限制每次编辑器传输。本地打包的远程客户端在本机提供这些资源，并将内容请求发往所选 Host。
 
 两种界面语言中的页面类型均显示为 `doc`、`wiki` 和 `table`。页面树、创建对话框和回收站分别使用文档、工作区和表格图标表示这三种类型。页面标题由用户命名。
 
@@ -148,7 +153,7 @@ Wiki 页面使用 `wikiDesktop`；单文档页在数据中保存为 `docx` 类�
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- 浏览器和 Host 位于同一台机器。思源模式使用 `http://127.0.0.1` 的 Web 地址和原版 WikiMan 库格式。思源保留各页面工作区的设置，未配置访问授权码的工作区会生成授权码。
+- 原始 SiYuan 模式要求浏览器与 Host 位于同一台机器、Web 源为 `http://127.0.0.1`，并使用旧版 WikiMan 知识库格式。远程部署使用 portable 模式。SiYuan 保留各工作区设置；没有访问码时会创建访问码。
 - 工作台支持打开和创建 Wiki 空间及单文档页。独立表格页支持创建和管理页面元数据。
 - Portable 同步通过共享目录手动触发，分叉版本需要人工处理。Agent 工具支持读取。
 - 搜索使用内核的字面匹配和有界页面扫描。引用打开对应文档，并在摘录来自历史版本时提示版本变化。
