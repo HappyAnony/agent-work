@@ -243,16 +243,17 @@ export class SiyuanWiki {
    * @param id - WikiMan page identity.
    * @param parent - DSH browser origin.
    * @param reference - optional previously read document.
+   * @param locale - DSH language to apply to this native workspace.
    * @param signal - caller cancellation before handoff.
    * @returns the native browser view.
    */
-  async open(id: string, parent: string, reference: WikiDocument | null, signal: AbortSignal): Promise<WikiSiyuanView> {
+  async open(id: string, parent: string, reference: WikiDocument | null, locale: string, signal: AbortSignal): Promise<WikiSiyuanView> {
     if (this.closing) await this.closing
     signal.throwIfAborted()
     if (this.hasEditors()) throw new WikiError('editor_busy')
     const page = this.page(id)
     if (page.type === 'table') throw new WikiError('page_unavailable')
-    const opening = this.startView(page, parent, reference, signal)
+    const opening = this.startView(page, parent, reference, locale, signal)
     this.opening = opening
     try {
       return await opening
@@ -261,7 +262,9 @@ export class SiyuanWiki {
     }
   }
 
-  private async startView(page: WikiPage, parent: string, reference: WikiDocument | null, signal: AbortSignal): Promise<WikiSiyuanView> {
+  private async startView(
+    page: WikiPage, parent: string, reference: WikiDocument | null, locale: string, signal: AbortSignal,
+  ): Promise<WikiSiyuanView> {
     let kernel: SiyuanKernel | undefined
     try {
       const root = join(this.config.sourceRoot, 'pages')
@@ -273,7 +276,7 @@ export class SiyuanWiki {
       const revision = reference ? await this.text(reference, signal) : undefined
       const first = reference?.docId ?? (await this.files(page.pageId, signal))[0]?.docId
       kernel = new SiyuanKernel(this.subprocess, this.config, workspace)
-      await kernel.start(single, page.name, signal)
+      await kernel.start(single, page.name, locale, signal)
       const changed = revision !== undefined && revision.hash !== reference?.hash
       const view = await kernel.view(parent, single, first, changed, viewId => this.close(viewId), signal)
       signal.throwIfAborted()

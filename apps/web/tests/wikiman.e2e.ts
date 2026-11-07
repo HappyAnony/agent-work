@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ToolCallId, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import type { ReplayEntry } from '@deepseek-ai/dsh-llm-replay'
-import { chromium, type Page } from 'playwright'
-import { describe, expect, it } from 'vitest'
+import { chromium, type Browser, type Page } from 'playwright'
+import { describe, expect, it, onTestFinished } from 'vitest'
 import { z } from 'zod'
 import { launchWebScaffold, readPersistedEvents, webSnapshotMode, type WebScaffold } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, REPO_ROOT } from './support.ts'
@@ -389,6 +389,56 @@ async function siyuanFixture(portable: string, legacy: string) {
 }
 
 describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record')('WikiMan original SiYuan workbench', () => {
+  it('uses the DSH language for existing English workspaces and newly created pages', async () => {
+    const root = await realpath(await mkdtemp(join(tmpdir(), 'dsh-siyuan-language-')))
+    const resources: { scaffold?: WebScaffold; browser?: Browser } = {}
+    onTestFinished(async () => {
+      try {
+        await resources.browser?.close()
+      } finally {
+        try { await resources.scaffold?.close() } finally { await rm(root, { recursive: true, force: true }) }
+      }
+    })
+    const sourceRoot = join(root, 'wiki')
+    const runtime = requireRuntimeResources()
+    await siyuanFixture(portableFixture, sourceRoot)
+    const conf = join(sourceRoot, 'pages', document.pageId, 'conf')
+    await mkdir(conf)
+    await writeFile(join(conf, 'conf.json'), JSON.stringify({ lang: 'en_US' }))
+    const overlay = join(root, 'wiki.patch.yml')
+    await writeFile(overlay, JSON.stringify([{ insert: [{ id: 'wikiman', name: '@deepseek-ai/dsh-wikiman', config: {
+      runtime: 'siyuan', kernelPath: join(runtime, 'bin/siyuan-kernel'), appDir: join(runtime, 'siyuan-app'),
+      sourceRoot, workspaceRoot: root,
+    } }] }]))
+    const scaffold = await launchWebScaffold({
+      extraOverlayPath: overlay,
+      extraInstallAnchors: [join(REPO_ROOT, 'packages/experimental/wikiman/package.json')],
+    })
+    resources.scaffold = scaffold
+    const browser = await chromium.launch()
+    resources.browser = browser
+    const page = await browser.newPage({ locale: 'zh-CN', viewport: { width: 1680, height: 1000 } })
+    await page.goto(scaffold.authenticatedUrl)
+    await page.getByRole('button', { name: '知识库', exact: true }).click()
+    const outer = page.locator('iframe[title="WikiMan 编辑器"]')
+    const frame = outer.contentFrame().frameLocator('iframe[title="SiYuan"]')
+    await frame.getByText('文档树', { exact: true }).waitFor()
+    const language = await readFile(join(runtime, 'siyuan-app/appearance/langs/zh_CN.json'), 'utf8')
+    expect(JSON.parse(language)).toMatchObject({ fileTree: '文档树' })
+    await page.getByRole('button', { name: '页面操作' }).click()
+    await page.getByRole('menuitem', { name: '新建页面', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: '新建页面' })
+    await dialog.getByRole('textbox', { name: '页面名称' }).fill('中文新页面')
+    await dialog.getByRole('radio', { name: 'Wiki 空间' }).check()
+    await dialog.getByRole('button', { name: '创建页面' }).click()
+    await dialog.waitFor({ state: 'hidden' })
+    await frame.getByText('文档树', { exact: true }).waitFor()
+    await frame.getByText('新建笔记本', { exact: true }).waitFor()
+    await page.getByRole('button', { name: '页面操作' }).click()
+    await page.getByRole('menuitem', { name: '保存并关闭' }).click()
+    await outer.waitFor({ state: 'hidden' })
+  })
+
   it('uses the original document tree and tabs, then reads and reopens a native edit', async () => {
     const root = await realpath(await mkdtemp(join(tmpdir(), 'dsh-siyuan-e2e-')))
     try {

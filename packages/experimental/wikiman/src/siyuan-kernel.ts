@@ -18,6 +18,11 @@ const confSchema = z.object({
   accessAuthCode: z.string().optional(),
   system: z.object({ networkServe: z.boolean().optional() }).optional(),
 })
+const nativeLanguages = new Map([
+  ['ar', 'ar_SA'], ['de', 'de_DE'], ['en', 'en_US'], ['es', 'es_ES'], ['fr', 'fr_FR'],
+  ['he', 'he_IL'], ['it', 'it_IT'], ['ja', 'ja_JP'], ['pl', 'pl_PL'], ['pt', 'pt_BR'],
+  ['ru', 'ru_RU'], ['zh', 'zh_CN'],
+])
 
 async function linkAssets(source: string, target: string, exclude: ReadonlySet<string>): Promise<void> {
   for (const name of await readdir(source)) {
@@ -46,10 +51,15 @@ export class SiyuanKernel {
    * Launch the matching original application and get a native owner cookie.
    * @param single - whether this WikiMan page uses SiYuan single-document mode.
    * @param title - initial title for a newly created single-document workspace.
+   * @param locale - active DSH language, resolved to a shipped native language or English.
    * @param signal - cancellation before the runtime is handed to a browser.
    * @returns completion of the native boot and authentication.
    */
-  async start(single: boolean, title: string, signal: AbortSignal): Promise<void> {
+  async start(single: boolean, title: string, locale: string, signal: AbortSignal): Promise<void> {
+    const requested = new Intl.Locale(locale)
+    const traditional = requested.language === 'zh'
+      && (requested.script === 'Hant' || ['TW', 'HK', 'MO'].includes(requested.region ?? ''))
+    const language = traditional ? 'zh_CHT' : nativeLanguages.get(requested.language) ?? 'en_US'
     const request = AbortSignal.any([signal, this.lifetime.signal, AbortSignal.timeout(this.config.startupTimeoutMs)])
     const conf = await readRegular(join(this.workspace, 'conf', 'conf.json'), this.config.maxResponseBytes)
     const settings = conf ? confSchema.parse(JSON.parse(conf.toString('utf8'))) : {}
@@ -69,6 +79,7 @@ export class SiyuanKernel {
     const child = this.subprocess.spawn({
       argv: [
         this.config.kernelPath, '--workspace=' + this.workspace, '--wd=' + assets, '--port=0', '--fixedPort=0',
+        '--lang=' + language,
         ...(single ? ['--single', '--single-doc-name=' + title] : []),
       ],
       env: { SIYUAN_ACCESS_AUTH_CODE: authCode, SIYUAN_ACCESS_AUTH_CODE_BYPASS: 'false' },

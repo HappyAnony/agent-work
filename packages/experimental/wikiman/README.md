@@ -55,7 +55,7 @@ Use the matching `bin/siyuan-kernel` and `siyuan-app` artifacts from the IronMan
         workspaceRoot: /path/to/project
 ```
 
-Run `pnpm dsh --profile agentwork --patch /path/to/wiki.patch.yml --host 127.0.0.1 --port 0` and open **Knowledge base**. Select a WikiMan page on the left. SiYuan owns the document tree, tabs, editor and saves. The **Page actions** menu contains page management and **Save and close**. The Agent reads committed documents in the configured workspace. Select **Open Wiki source** from a read result to open the cited document in SiYuan.
+Run `pnpm dsh --profile agentwork --patch /path/to/wiki.patch.yml --host 127.0.0.1 --port 0` and open **Knowledge base**. Select a WikiMan page on the left. SiYuan owns the document tree, tabs, editor and saves. The native interface uses the active DSH language when opening each page, including existing workspaces. Reopen the page after changing DSH's language. Languages absent from SiYuan's resources use English. The **Page actions** menu contains page management and **Save and close**. The Agent reads committed documents in the configured workspace. Select **Open Wiki source** from a read result to open the cited document in SiYuan.
 
 ### Use the portable workbench
 

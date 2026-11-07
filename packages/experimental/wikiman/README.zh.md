@@ -55,7 +55,7 @@ pnpm dsh plugin --profile agentwork add --workspace-root link:./packages/experim
         workspaceRoot: /path/to/project
 ```
 
-运行 `pnpm dsh --profile agentwork --patch /path/to/wiki.patch.yml --host 127.0.0.1 --port 0` 并打开 **知识库**。在左侧选择 WikiMan 页面。思源负责文档树、标签页、编辑和保存。**页面操作** 菜单提供页面管理和 **保存并关闭**。在已配置的工作区中，Agent 可以读取已保存的文档。点击读取结果上的 **打开 Wiki 原文**，会在思源中打开对应文档。
+运行 `pnpm dsh --profile agentwork --patch /path/to/wiki.patch.yml --host 127.0.0.1 --port 0` 并打开 **知识库**。在左侧选择 WikiMan 页面。思源负责文档树、标签页、编辑和保存。每次打开页面时，原版界面采用 DSH 当前选择的语言，已有工作区也适用。修改 DSH 语言后需重新打开页面，思源资源未包含的语言使用英语。**页面操作** 菜单提供页面管理和 **保存并关闭**。在已配置的工作区中，Agent 可以读取已保存的文档。点击读取结果上的 **打开 Wiki 原文**，会在思源中打开对应文档。
 
 ### 使用 portable 工作台
 

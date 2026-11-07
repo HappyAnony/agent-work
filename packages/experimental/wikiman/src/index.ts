@@ -166,17 +166,20 @@ export default class WikiMan extends TypertRemoteService {
    * @param pageId - original WikiMan page.
    * @param parent - DSH browser origin.
    * @param reference - optional document citation.
+   * @param locale - active DSH interface language for the native workspace.
    * @param signal - remote cancellation before the view is issued.
    * @returns the native view and one-use browser login URL.
    */
   @Remote
-  async openSiyuan(pageId: string, parent: string, reference: WikiDocument | null, signal: AbortSignal): Promise<WikiSiyuanView> {
+  async openSiyuan(
+    pageId: string, parent: string, reference: WikiDocument | null, locale: string, signal: AbortSignal,
+  ): Promise<WikiSiyuanView> {
     return await this.owner(async () => {
       const wiki = this.siyuan
       const peer = this.ctx.invocation?.peer
       if (!wiki || !peer) throw new WikiError('siyuan_mode_required')
       const lifetime = AbortSignal.any([signal, peer.signal, this.lifetime.signal])
-      const view = await wiki.open(pageId, parent, reference, lifetime)
+      const view = await wiki.open(pageId, parent, reference, locale, lifetime)
       if (lifetime.aborted) {
         await wiki.close(view.viewId)
         lifetime.throwIfAborted()

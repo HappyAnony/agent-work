@@ -85,7 +85,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
         if (runtime === 'siyuan') {
           const reference = target.kind === 'document' ? target.document : null
           const pageId = target.kind === 'page' ? target.page.pageId : target.document.pageId
-          return unwrap(scope.remote.wikiman.openSiyuan(pageId, location.origin, reference, signal))
+          return unwrap(scope.remote.wikiman.openSiyuan(pageId, location.origin, reference, scope.locale.getLocale().active, signal))
         }
         return target.kind === 'page'
           ? unwrap(scope.remote.wikiman.openPage(target.page.pageId, signal))
