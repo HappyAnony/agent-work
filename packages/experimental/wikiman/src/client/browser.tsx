@@ -7,7 +7,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { Button, IconFolderOpenOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
-import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import remote from '@deepseek-ai/dsh-wikiman/remote'
 import type { WikiDocument } from '../types.ts'
@@ -160,7 +160,16 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       resolve: (pageId, blockId, signal) => unwrap(scope.remote.wikiman.resolveLink(pageId, blockId, signal)),
       release: viewId => unwrap(scope.remote.wikiman.closeEditor(viewId)),
     }
+    const compactQuery = window.matchMedia('(max-width: 800px)')
+    const compactWidth: HostObservable<boolean> = {
+      getSnapshot: () => compactQuery.matches,
+      subscribe: (listener) => {
+        compactQuery.addEventListener('change', listener)
+        return () => { compactQuery.removeEventListener('change', listener) }
+      },
+    }
     const panel: PanelActions = {
+      hooks: { compactWidth },
       runtime,
       getSnapshot: editor.getSnapshot,
       subscribe: editor.subscribe,

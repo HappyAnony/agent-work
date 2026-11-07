@@ -46,6 +46,36 @@
   font-size: 13px;
 }
 
+.list[hidden],
+.anchor[hidden] {
+  display: none;
+}
+
+.workbenchHeader {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px 12px 0;
+}
+
+.workbenchHeader h1 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.pagesToggle {
+  display: none;
+}
+
 .list p,
 .emptyEditor p {
   color: var(--dsw-alias-label-secondary);
@@ -171,6 +201,10 @@
   .list input {
     font-size: 16px;
   }
+
+  .workbenchHeader button {
+    min-height: 36px;
+  }
 }
 
 .headingActions,
@@ -236,25 +270,26 @@
   overflow-wrap: anywhere;
 }
 
-.siyuanPage .columns {
+.siyuanPage {
+  display: grid;
   grid-template-columns: clamp(184px, 22%, 280px) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.siyuanPage .columns {
+  display: contents;
 }
 
 .siyuanPage .list {
+  grid-column: 1;
+  grid-row: 2;
+  padding-block-start: 4px;
   background: var(--dsw-alias-bg-base);
 }
 
-.pageTreeHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.pageTreeHeader h1 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 500;
+.siyuanPage .anchor {
+  grid-column: 2;
+  grid-row: 1 / -1;
 }
 
 :global([data-platform='darwin']) .siyuanPage {
@@ -262,14 +297,29 @@
 }
 
 @media (max-width: 800px) {
-  .siyuanPage .columns {
+  .siyuanPage {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(112px, 25%) minmax(0, 1fr);
+  }
+
+  .workbenchHeader {
+    min-height: 44px;
+    padding: 4px 12px;
+    border-block-end: 1px solid var(--dsw-alias-border-l4);
+  }
+
+  .pagesToggle {
+    display: inline-flex;
+  }
+
+  .siyuanPage .list {
+    padding-block-start: 12px;
   }
 
   .siyuanPage .anchor {
+    grid-column: 1;
+    grid-row: 2;
     border-inline-start: 0;
-    border-block-start: 1px solid var(--dsw-alias-border-l4);
+    border-block-start: 0;
   }
 }
 

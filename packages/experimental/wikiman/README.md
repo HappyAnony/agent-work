@@ -61,6 +61,8 @@ Run `pnpm dsh --profile agentwork --patch /path/to/wiki.patch.yml --host 127.0.0
 
 Portable mode supports a Linux or macOS Host with remote Web and mobile browsers, or a Mac client that packages the matching frontend locally. Follow [deploying an AgentWork server](../../../docs/cookbook/deploying-agentwork-server.md) for profile preparation, SSH access and packaging.
 
+At widths up to 800 CSS pixels, use **Pages** to switch between the page list and the full-height editor. Selecting a page closes the list. The editor remains mounted while browsing pages or resizing, preserving pending edits. The Wiki document tree opens separately from its dock button.
+
 Build the modified source pair with `bash native/wikiman/build.sh`; see the [runtime build instructions](../../../native/wikiman/README.md) for prerequisites, export helpers and licenses. Use `native/wikiman/out/bin/wiki-kernel` and `native/wikiman/out/wiki-app`, plus a portable store whose root contains `store.json`. Mount the plugin with the following patch. Replace the four paths with absolute local paths. The workspace path is the directory to select when creating a Chat Session. The log upload setting prevents the official DeepSeek API from receiving the additional canonical Session log. The selected model still receives the excerpts used to answer the question.
 
 ```yaml

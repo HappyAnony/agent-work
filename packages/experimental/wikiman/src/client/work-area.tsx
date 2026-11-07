@@ -86,7 +86,7 @@ function SiyuanWorkArea(props: Props) {
     if (!anchor) return
     const measure = () => {
       const { left, top, width, height } = anchor.getBoundingClientRect()
-      setPosition(previous => previous?.left === left && previous.top === top
+      setPosition(previous => width === 0 || height === 0 ? null : previous?.left === left && previous.top === top
         && previous.width === width && previous.height === height ? previous : { left, top, width, height })
     }
     measure()

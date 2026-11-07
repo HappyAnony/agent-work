@@ -61,6 +61,8 @@ pnpm dsh plugin --profile agentwork add --workspace-root link:./packages/experim
 
 portable 模式支持 Linux 或 macOS Host，可由远程 Web、移动浏览器或本地打包匹配前端的 Mac 客户端访问。配置准备、SSH 访问和打包步骤见 [部署 AgentWork 服务端](../../../docs/cookbook/deploying-agentwork-server.zh.md)。
 
+宽度不超过 800 CSS 像素时，点击“页面”在页面列表与占满剩余高度的编辑器之间切换，选中页面后收起列表。浏览列表或调整窗口大小时保留编辑器实例和待保存内容。Wiki 文档树通过独立的停靠栏按钮展开。
+
 运行 `bash native/wikiman/build.sh` 构建改造版源码，依赖、导出辅助工具和许可证见 [runtime 构建说明](../../../native/wikiman/README.zh.md)。使用 `native/wikiman/out/bin/wiki-kernel`、`native/wikiman/out/wiki-app`，以及一份根目录包含 `store.json` 的 portable 知识库。用下面的配置挂载插件，将四个路径换成本机绝对路径。创建 Chat 会话时选择配置的工作区目录。关闭日志上传后，官方 DeepSeek API 不再收到额外附带的完整会话日志。用于回答问题的摘录仍会发送给所选模型。
 
 ```yaml

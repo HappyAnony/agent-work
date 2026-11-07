@@ -221,6 +221,10 @@ export class PortableEditor {
       return
     }
     const rect = this.anchor.getBoundingClientRect()
+    if (rect.width === 0 || rect.height === 0) {
+      this.holder.style.display = 'none'
+      return
+    }
     Object.assign(this.holder.style, {
       display: 'block',
       visibility: 'visible',

@@ -1,10 +1,10 @@
 /** The WikiMan page tree and the seat occupied by the native editor. */
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import {
-  Button, IconChevronDownOutlineRegular, IconChevronRightOutlineRegular, IconEllipsisOutlineRegular,
+  Button, IconChevronDownOutlineRegular, IconChevronRightOutlineRegular, IconEllipsisOutlineRegular, IconFolderOpenOutlineRegular,
   Input, Menu, MenuItemButton, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+import type { HostObservable, InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WikiCreatePage, WikiListing, WikiPage, WikiPageChange, WikiRuntime } from '../types.ts'
 import { LibraryTools, type LibraryActions } from './library-tools.tsx'
 import { PageMaintenance } from './page-maintenance.tsx'
@@ -15,6 +15,7 @@ import css from './wiki.module.css'
 
 /** Page listing, selection and editor placement supplied by the WikiMan owner. */
 export interface PanelActions extends Pick<EditorActions, 'subscribe' | 'select'>, LibraryActions {
+  readonly hooks: { readonly compactWidth: HostObservable<boolean> }
   readonly runtime: WikiRuntime
   readonly getSnapshot: () => WorkbenchSnapshot
   readonly pages: (query: string, cursor: string, signal: AbortSignal) => Promise<WikiListing<WikiPage>>
@@ -58,8 +59,13 @@ function treeRows(pages: readonly WikiPage[], query: string, collapsed: Readonly
  * @returns the WikiMan workbench.
  */
 export function WikiPanel({
-  runtime, pages, create, maintenancePages, change, importLibrary, syncLibrary, select, subscribe, getSnapshot, attach, t,
+  runtime, pages, create, maintenancePages, change, importLibrary, syncLibrary, select, subscribe, getSnapshot, attach, useCompactWidth, t,
 }: PanelProps) {
+  const compact = useCompactWidth(value => value)
+  const [pagesOpen, setPagesOpen] = useState(false)
+  const pagesId = useId()
+  const navigation = useRef<HTMLElement>(null)
+  const pagesToggle = useRef<HTMLButtonElement>(null)
   const { target } = useSyncExternalStore(subscribe, getSnapshot)
   const [tree, setTree] = useState<WikiListing<WikiPage>>({ items: [], nextCursor: '' })
   const [cursor, setCursor] = useState('')
@@ -77,6 +83,17 @@ export function WikiPanel({
   const pageId = target?.kind === 'document' ? target.document.pageId : target?.page.pageId
 
   const activePage = tree.items.find(page => page.pageId === pageId)
+
+  useEffect(() => {
+    const focused = document.activeElement
+    if (compact && !pagesOpen && focused && navigation.current?.contains(focused)) pagesToggle.current?.focus()
+    else if (!compact && focused === pagesToggle.current) navigation.current?.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.focus()
+  }, [compact, pagesOpen])
+
+  function closePages() {
+    setPagesOpen(false)
+    if (compact) pagesToggle.current?.focus()
+  }
 
   useEffect(() => {
     const abort = new AbortController()
@@ -125,30 +142,38 @@ export function WikiPanel({
     select(null)
   }
 
+  const pageActions = <Menu open={menu} onClose={() => { setMenu(false) }} portal autoFocus align="end" anchor={
+    <Tooltip label={t('pageActions')} portal>
+      <Button size="sm" aria-label={t('pageActions')} aria-haspopup="menu" aria-expanded={menu}
+        onClick={() => { setMenu(value => !value) }}>
+        <IconEllipsisOutlineRegular size={16} aria-hidden="true" />
+      </Button>
+    </Tooltip>
+  }>
+    <MenuItemButton onSelect={() => { setMenu(false); setCreating(true) }}>{t('newPage')}</MenuItemButton>
+    <MenuItemButton disabled={!activePage} onSelect={() => {
+      setMenu(false)
+      if (activePage) manage(activePage)
+    }}>{t('managePage')}</MenuItemButton>
+    <MenuItemButton onSelect={() => { setMenu(false); manage(null) }}>{t('trash')}</MenuItemButton>
+    {runtime === 'portable' && <MenuItemButton onSelect={() => { setMenu(false); setLibraryTools(true); select(null) }}>{t('wikiLibraryTools')}</MenuItemButton>}
+    <MenuItemButton onSelect={() => { setMenu(false); refreshPages() }}>{t('refresh')}</MenuItemButton>
+    {target && <MenuItemButton onSelect={() => { setMenu(false); select(null) }}>{t('saveClose')}</MenuItemButton>}
+  </Menu>
+
   return <main className={css.siyuanPage}>
+    <header className={css.workbenchHeader}>
+      <Button ref={pagesToggle} className={css.pagesToggle} size="sm" aria-expanded={pagesOpen} aria-controls={pagesId}
+        icon={<IconFolderOpenOutlineRegular size={16} aria-hidden="true" />}
+        onClick={() => { setPagesOpen(value => !value) }}>{t('pages')}</Button>
+      <h1 title={compact ? activePage?.name : undefined}>{compact ? activePage?.name ?? t('title') : t('title')}</h1>
+      {pageActions}
+    </header>
     <div className={css.columns}>
-      <nav className={css.list} aria-label={t('pages')}>
-        {<header className={css.pageTreeHeader}>
-          <h1>{t('title')}</h1>
-          <Menu open={menu} onClose={() => { setMenu(false) }} portal autoFocus align="end" anchor={
-            <Tooltip label={t('pageActions')} portal>
-              <Button size="sm" aria-label={t('pageActions')} aria-haspopup="menu" aria-expanded={menu}
-                onClick={() => { setMenu(value => !value) }}>
-                <IconEllipsisOutlineRegular size={16} aria-hidden="true" />
-              </Button>
-            </Tooltip>
-          }>
-            <MenuItemButton onSelect={() => { setMenu(false); setCreating(true) }}>{t('newPage')}</MenuItemButton>
-            <MenuItemButton disabled={!activePage} onSelect={() => {
-              setMenu(false)
-              if (activePage) manage(activePage)
-            }}>{t('managePage')}</MenuItemButton>
-            <MenuItemButton onSelect={() => { setMenu(false); manage(null) }}>{t('trash')}</MenuItemButton>
-            {runtime === 'portable' && <MenuItemButton onSelect={() => { setMenu(false); setLibraryTools(true); select(null) }}>{t('wikiLibraryTools')}</MenuItemButton>}
-            <MenuItemButton onSelect={() => { setMenu(false); refreshPages() }}>{t('refresh')}</MenuItemButton>
-            {target && <MenuItemButton onSelect={() => { setMenu(false); select(null) }}>{t('saveClose')}</MenuItemButton>}
-          </Menu>
-        </header>}
+      <nav ref={navigation} id={pagesId} className={css.list} aria-label={t('pages')} hidden={compact && !pagesOpen}
+        onKeyDown={(event) => {
+          if (compact && event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closePages() }
+        }}>
         <Input aria-label={t('findPages')} placeholder={t('findPages')} value={query}
           onChange={(event) => { setCursor(''); setQuery(event.target.value) }} />
         {status === 'loading' && <p role="status">{t('loading')}</p>}
@@ -174,13 +199,13 @@ export function WikiPanel({
             icon={<PageTypeIcon type={page.type} />}
             aria-pressed={page.pageId === pageId}
             title={`${page.name} · ${t(pageTypeLabels[page.type])}`}
-            onClick={() => { if (page.pageId !== pageId) select({ kind: 'page', page }) }}>
+            onClick={() => { if (page.pageId !== pageId) select({ kind: 'page', page }); closePages() }}>
             <span>{page.name}</span>
           </Button>
         </div>)}
         {tree.nextCursor && <Button size="sm" disabled={status === 'loading'} onClick={() => { setCursor(tree.nextCursor) }}>{t('more')}</Button>}
       </nav>
-      <div ref={attach} className={css.anchor}>
+      <div ref={attach} className={css.anchor} hidden={compact && pagesOpen}>
         {!target && <section className={css.emptyEditor}><p>{t('choosePage')}</p></section>}
       </div>
     </div>
@@ -202,6 +227,7 @@ export function WikiPanel({
         setQuery('')
         setRefresh(value => value + 1)
         select({ kind: 'page', page })
+        closePages()
       }} t={t} />}
   </main>
 }
