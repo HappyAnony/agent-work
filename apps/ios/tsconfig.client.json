@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.base.client.json",
+  "compilerOptions": { "rootDir": "../..", "outDir": "lib/types" },
+  "include": ["src", "../desktop/src/remote-copy.ts"],
+  "references": [{ "path": "../../packages/util/crypto" }, { "path": "../../packages/util/brand" }]
+}

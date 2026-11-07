@@ -15,6 +15,7 @@ Run the Agent, tools, Wiki kernel and data on one Linux or macOS server. Web and
 - [Prepare the server](#prepare-the-server)
 - [Connect through SSH](#connect-through-ssh)
 - [Package the Mac client](#package-the-mac-client)
+- [Install the iOS client](#install-the-ios-client)
 - [Verify the workflow](#verify-the-workflow)
 - [Operation and limits](#operation-and-limits)
 
@@ -72,6 +73,11 @@ pnpm --dir apps/desktop exec electron-builder \
 ```
 
 This command produces a personal, ad-hoc-signed build; distribution with Apple signing and notarization follows the ordinary [packaging guide](../../apps/desktop/packaging/README.md). The client verifies the server’s index, plugin entry and Wiki build fingerprints before opening the workspace. Rebuild the Mac package after changing those assets or adding a client plugin. A version mismatch keeps the connection screen visible.
+
+<a id="install-the-ios-client"></a>
+## Install the iOS client
+
+The [iOS application](../../apps/ios/README.md) packages the same frontend locally and uses the selected HTTPS backend. Follow its Xcode build and Personal Team installation instructions. The phone needs a directly reachable LAN or VPN HTTPS address; a loopback SSH tunnel on the Mac is insufficient.
 
 <a id="verify-the-workflow"></a>
 ## Verify the workflow

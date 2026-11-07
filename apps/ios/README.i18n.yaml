@@ -1,0 +1,31 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write apps/ios/README.md
+/:
+  en: 97cc96ac1da8ddd3
+  zh: 582815e9047958b3
+/agentwork-ios:
+  en: d439773057b42261
+  zh: 5237b5c436fa1e8e
+/agentwork-ios/summary:
+  en: 54b6765d79d22b5c
+  zh: 892ed9c86cbe756f
+/agentwork-ios/table-of-contents:
+  en: 29cd1acd8b96b983
+  zh: e0e7c1c53c38b434
+/agentwork-ios/build-and-install:
+  en: df168535da64ce3c
+  zh: 9f9b7724c81d5564
+/agentwork-ios/connect:
+  en: e4d1ae7164fe4223
+  zh: 1841ad4dc2284c4b
+/agentwork-ios/runtime-and-limits:
+  en: dad50cfc80a03d35
+  zh: 1be4a2a34cf545f3
+/agentwork-ios/developer-checks:
+  en: 5809118ffa5e16b5
+  zh: 4996c1c471046f14
+/agentwork-ios/dev-note:
+  en: b75c8458928b72b9
+  zh: 45e76642489dcc3c

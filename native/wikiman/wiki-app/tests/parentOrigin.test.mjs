@@ -15,13 +15,13 @@ test('accepts a remote Web parent only at the editor document origin', () => {
     }
 });
 
-for (const origin of ['http://127.0.0.1:49615', 'http://localhost:9000', 'http://[::1]:4000', 'tauri://localhost', 'dsh-app://app']) {
+for (const origin of ['http://127.0.0.1:49615', 'http://localhost:9000', 'http://[::1]:4000', 'tauri://localhost', 'dsh-app://app', 'dsh-app://localhost']) {
     test('accepts the canonical local application origin ' + origin, () => {
         assert.equal(validEditorParentOrigin(origin), true);
     });
 }
 for (const origin of ['*', 'null', '', 'dsh-app://shell', 'dsh-app://attacker', 'dsh-app://app/', 'dsh-app://app:80',
-    'dsh-app://user@app', 'dsh-app://app?token=x', 'tauri://attacker', 'http://attacker.invalid',
+    'dsh-app://localhost/', 'dsh-app://localhost:80', 'dsh-app://user@localhost', 'dsh-app://localhost?token=x', 'dsh-app://user@app', 'dsh-app://app?token=x', 'tauri://attacker', 'http://attacker.invalid',
     'http://127.0.0.1:9000/path', 'http://user@127.0.0.1:9000', 'http://127.0.0.1:9000#fragment']) {
     test('rejects the untrusted or noncanonical origin ' + origin, () => {
         assert.equal(validEditorParentOrigin(origin), false);

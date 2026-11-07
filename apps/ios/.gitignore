@@ -1,0 +1,16 @@
+www/
+.prepare-*/
+lib/
+.build/
+*.tsbuildinfo
+ios/capacitor-cordova-ios-plugins/
+ios/App/Signing.local.xcconfig
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/xcuserdata/
+ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+ios/App/DerivedData/
+ios/App/build/
+*.ipa
+*.xcarchive

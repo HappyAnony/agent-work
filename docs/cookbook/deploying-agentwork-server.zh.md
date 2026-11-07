@@ -15,6 +15,7 @@ description: "在 Linux 或 macOS 部署 AgentWork 后端，并连接 Web、移�
 - [准备服务端](#prepare-the-server)
 - [通过 SSH 访问](#connect-through-ssh)
 - [打包 Mac 客户端](#package-the-mac-client)
+- [安装 iOS 客户端](#install-the-ios-client)
 - [验证使用闭环](#verify-the-workflow)
 - [运行和限制](#operation-and-limits)
 
@@ -72,6 +73,11 @@ pnpm --dir apps/desktop exec electron-builder \
 ```
 
 此命令生成个人使用的临时签名构建；Apple 签名和公证发行遵循普通 [打包指南](../../apps/desktop/packaging/README.zh.md)。客户端打开工作区前校验服务端 index、插件入口及 Wiki 构建摘要。修改这些资源或新增客户端插件后需重新打包 Mac 客户端；版本不匹配时会保留在连接界面。
+
+<a id="install-the-ios-client"></a>
+## 安装 iOS 客户端
+
+[iOS 应用](../../apps/ios/README.zh.md) 在本地打包同一套前端，并访问所选 HTTPS 后端。按照其说明使用 Xcode 构建并通过 Personal Team 安装。手机需要可直接访问的局域网或 VPN HTTPS 地址；Mac 上的本地 SSH 隧道不足以支持手机访问。
 
 <a id="verify-the-workflow"></a>
 ## 验证使用闭环

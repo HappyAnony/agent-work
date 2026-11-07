@@ -128,7 +128,7 @@ func (a *editorAssets) serve(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	const plantUML = "stage/protyle/js/plantuml/"
 	const widgetFrame = "stage/protyle/js/widget/"
-	const ancestors = "frame-ancestors http://127.0.0.1:* http://localhost:* tauri://localhost dsh-app://app;"
+	const ancestors = "frame-ancestors http://127.0.0.1:* http://localhost:* tauri://localhost dsh-app://app dsh-app://localhost;"
 	frameURL := "http://" + r.Host + "/" + plantUML + "scoped.html http://" + r.Host + "/" + widgetFrame + "scoped.html"
 	policy := "default-src 'none'; script-src 'self' 'unsafe-eval'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob:; media-src blob:; font-src 'self'; connect-src 'self' blob: ws://" + r.Host + "; " + ancestors + " frame-src " + frameURL + "; base-uri 'none'; form-action 'none'; object-src 'none'"
 	if r.Method != "GET" && r.Method != "HEAD" {

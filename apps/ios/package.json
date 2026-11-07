@@ -1,0 +1,22 @@
+{
+  "name": "@deepseek-ai/dsh-ios",
+  "version": "0.2.2-rc.1",
+  "private": true,
+  "description": "AgentWork iOS carrier with locally packaged frontend resources and a shared remote backend",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "prepare:frontend": "tsx scripts/prepare-frontend.ts",
+    "sync": "tsx scripts/sync.ts",
+    "open": "cap open ios"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-util-crypto": "workspace:*",
+    "@deepseek-ai/dsh-brand": "workspace:*",
+    "@capacitor/core": "8.6.0",
+    "@capacitor/ios": "8.6.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.6.0"
+  }
+}

@@ -12,8 +12,8 @@
   en: 76a05c55385a6846
   zh: 64150793683b614c
 /deploy-an-agentwork-server/table-of-contents:
-  en: 6d2202c2819327cd
-  zh: 1e4261a99a2018c2
+  en: df5e0a5bc692933e
+  zh: e32246d24decba22
 /deploy-an-agentwork-server/prepare-the-server:
   en: 1a44caedafc3f7e7
   zh: 9e30e380541b3102
@@ -21,8 +21,11 @@
   en: d9a7433248191b24
   zh: 54669edf9a60212d
 /deploy-an-agentwork-server/package-the-mac-client:
-  en: 28cc15307519c3ee
-  zh: 50196351ddfd5166
+  en: 0299e1c63eadb07c
+  zh: 7f24c029814f3c42
+/deploy-an-agentwork-server/install-the-ios-client:
+  en: 155ee53f4cd7b558
+  zh: 97b9f69d0536bd6a
 /deploy-an-agentwork-server/verify-the-workflow:
   en: 6641d2abe894fc9c
   zh: b2a99abb66a512ac

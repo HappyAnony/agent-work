@@ -1,0 +1,17 @@
+{
+  "appId": "local.agentwork.ios",
+  "appName": "AgentWork",
+  "webDir": "www",
+  "loggingBehavior": "none",
+  "initialFocus": false,
+  "server": {
+    "hostname": "app",
+    "iosScheme": "dsh-app",
+    "appStartPath": "connect.html"
+  },
+  "ios": {
+    "contentInset": "never",
+    "preferredContentMode": "mobile",
+    "scrollEnabled": true
+  }
+}

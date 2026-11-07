@@ -62,7 +62,7 @@ func TestEditorAssetsConfinedAndNeverServeSourceOrLegacy(t *testing.T) {
 		if w.Code == 200 && !strings.Contains(w.Header().Get("Content-Security-Policy"), "media-src blob:;") {
 			t.Fatal("media must use authenticated owned blobs, not remote source URLs")
 		}
-		if w.Code == 200 && !strings.Contains(w.Header().Get("Content-Security-Policy"), "frame-ancestors http://127.0.0.1:* http://localhost:* tauri://localhost dsh-app://app;") {
+		if w.Code == 200 && !strings.Contains(w.Header().Get("Content-Security-Policy"), "frame-ancestors http://127.0.0.1:* http://localhost:* tauri://localhost dsh-app://app dsh-app://localhost;") {
 			t.Fatal("editor embedding must allow only local Web and the exact application origins")
 		}
 	}

@@ -4,7 +4,7 @@
  * @returns Whether the origin identifies a supported application window.
  */
 export function validEditorParentOrigin(value: string): boolean {
-    if (value === "tauri://localhost" || value === "dsh-app://app") { return true; }
+    if (value === "tauri://localhost" || value === "dsh-app://app" || value === "dsh-app://localhost") { return true; }
     let origin: URL;
     try { origin = new URL(value); }
     catch (error) { return false; }
