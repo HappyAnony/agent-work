@@ -1,0 +1,8 @@
+[package]
+name = "wiki-source-lock-probe"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+fs2 = "=0.4.3"

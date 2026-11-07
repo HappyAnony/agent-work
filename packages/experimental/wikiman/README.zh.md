@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-从 DSH Web 侧栏打开 WikiMan。原版思源模式将 WikiMan 页面树与思源的文档树、多标签和编辑器并排展示。Portable 模式支持旧库导入和双向同步。指定工作区可以搜索已保存的文档，并从会话中的引用打开原文。
+从 DSH Web 侧栏打开 WikiMan。仓库内源码构建的 portable runtime 将 WikiMan 页面树与原生文档树、多标签、分屏和富文本编辑器组合，并支持旧库导入和经过校验的双端同步。指定工作区可以搜索已保存的文档，并从会话中的引用打开原文。原版思源模式保留作为兼容入口。
 
 ## 目录
 
@@ -59,7 +59,7 @@ pnpm dsh plugin --profile agentwork add --workspace-root link:./packages/experim
 
 ### 使用 portable 工作台
 
-准备相互匹配的 portable `wiki-kernel` 和 `wiki-app`，以及一份根目录包含 `store.json` 的 portable 库副本。用下面的配置挂载插件，将四个路径换成本机绝对路径。创建 Chat 会话时选择配置的工作区目录。关闭日志上传后，官方 DeepSeek API 不再收到额外附带的完整会话日志。用于回答问题的摘录仍会发送给所选模型。
+运行 `bash native/wikiman/build.sh` 构建改造版源码，依赖、导出辅助工具和许可证见 [runtime 构建说明](../../../native/wikiman/README.zh.md)。使用 `native/wikiman/out/bin/wiki-kernel`、`native/wikiman/out/wiki-app`，以及一份根目录包含 `store.json` 的 portable 知识库。用下面的配置挂载插件，将四个路径换成本机绝对路径。创建 Chat 会话时选择配置的工作区目录。关闭日志上传后，官方 DeepSeek API 不再收到额外附带的完整会话日志。用于回答问题的摘录仍会发送给所选模型。
 
 ```yaml
 - id: session-log-deepseek
@@ -74,21 +74,23 @@ pnpm dsh plugin --profile agentwork add --workspace-root link:./packages/experim
         workspaceRoot: /path/to/project
 ```
 
-运行 `pnpm dsh --profile agentwork --patch /path/to/wiki.patch.yml --port 0`。打开 **知识库**，从页面树选择页面或点击 **新建页面**，然后在原生工作区编辑。编辑完成后点击 **保存并关闭**。在已配置的工作区里询问该段落中的一个具体词语。展开这轮对话的工具过程，在读取结果里点击 **打开 Wiki 原文**。
+运行 `pnpm dsh --profile agentwork --patch /path/to/wiki.patch.yml --port 0`。打开 **知识库**，从页面树选择页面或点击 **页面操作 → 新建页面**，然后在原生工作区编辑。原生标签支持固定、关闭操作、拖动和分屏，重新打开页面时恢复布局。点击 **页面操作 → 保存并关闭** 可保存全部标签并结束编辑。在已配置的工作区里询问该段落中的一个具体词语。展开这轮对话的工具过程，在读取结果里点击 **打开 Wiki 原文**。
 
-选择 **管理页面**，可以重命名所选页面、更改父页面和同级顺序，或将它和未删除的子页移入 **回收站**。恢复父页面时，同时恢复与它一起回收的子页。
+选择 **页面操作 → 管理页面**，可以重命名所选页面、更改父页面和同级顺序，或将它和未删除的子页移入 **回收站**。恢复父页面时，同时恢复与它一起回收的子页。
 
 ### 导入旧知识库
 
-关闭旧版 WikiMan，打开 **知识库 → 知识库工具 → 导入旧库**。输入包含 `page.db` 的目录、旧库之外的一个现有目标目录和名称。预览文件清单和内核校验警告，再选择 **创建 portable 副本**。导入会生成新目录，旧库原样保留。将 `sourceRoot` 改为界面显示的新路径，重启 DSH 即可打开新库。
+关闭旧版 WikiMan，打开 **知识库 → 页面操作 → 知识库工具 → 导入旧库**。输入包含 `page.db` 的目录、旧库之外的一个现有目标目录和名称。预览文件清单和内核校验警告，再选择 **创建 portable 副本**。导入会生成新目录，旧库原样保留。将 `sourceRoot` 改为界面显示的新路径，重启 DSH 即可打开新库。
 
-导入保留页面 ID、层级、扩展元数据、文档正文和附件。旧版单文档页需要有一个可识别的入口文档。报告会计入只剩删除标记、已经没有可恢复文档数据的旧库记录。
+导入保留页面 ID、层级、扩展元数据、文档正文和附件。旧版单文档页需要有一个可识别的入口文档。报告会计入只剩删除标记、已经没有可恢复文档数据的旧库记录。需要保留历史原生引用时，将该库的旧 store ID 加入插件 profile 的 `legacyCitationStoreIds`；别名仅适用于当前配置的已导入知识库，打开前会重新校验文档。
 
 ### 同步两份 portable 知识库
 
 从同一个 portable 知识库复制两份副本，两个插件的 `syncDirectory` 指向同一个现有共享目录，且目录在两个知识库之外。两端访问的文件系统须支持原子创建目录和重命名。先分别执行一次 **知识库工具 → Portable 同步 → 立即同步** 建立共同版本，编辑后再分别同步。接收的版本会在 DSH 中打开，重启后继续使用。
 
 共同版本之后两端都有改动时，DSH 将两份版本保留在 `<sourceRoot>/.local/dsh-wikiman-sync/conflicts/<digest>` 并显示哈希。共享目录也保留之前发布的版本，可以比对后再决定如何处理冲突。DSH 打开接收的工作副本后，原始知识库目录仍可访问。
+
+插件在 MIT DSH 代码之外包含改编的 AGPL portable 宿主文件，package 许可证同时记录两者。仓库内的 runtime 和内置资源保留原许可证。
 
 操作时间、响应字节数、扫描和知识库大小的限制见[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-wikiman)。
 
@@ -102,7 +104,11 @@ pnpm dsh plugin --profile agentwork add --workspace-root link:./packages/experim
 
 在思源模式下，Host 为选中的 WikiMan 页面工作区启动 IronMan 原版内核。浏览器通过一次性的本机登录入口取得思源的 HttpOnly 会话 Cookie。切换页面前，同源 iframe 等待原版编辑器的保存事务。浏览器连接持有内核租约，标签页关闭时释放。Agent 读取已落盘的文档。DSH 使用独立的 SQLite 表记录页面回收状态。
 
-在 portable 模式下，Host 在独立的回环端口启动一个 portable 内核，持有其进程和凭据。浏览器通过私有消息通道将页面级视图交给编辑器。切换 Wiki 页面时，先结清保存队列，再由 Host 撤销旧视图。切到 Chat 时保留编辑器实例，返回后无需重新加载。浏览器 Remote 面向本地所有者。每次执行工具时都会检查 Session 的初始工作区目录。
+在 portable 模式下，Host 在独立的回环端口启动源码构建的 Wiki 内核，持有其进程和凭据。WikiMan 账号、会员及官方云服务已移除，DSH 模型认证继续可用。浏览器通过私有消息通道将页面级视图交给编辑器。切换 Wiki 页面时，先排空全部标签的保存队列，再由 Host 撤销旧视图。浏览器连接持有这些租约，断开时会释放。切到 Chat 时保留编辑器实例，返回后无需重新加载。浏览器 Remote 面向本地所有者。每次执行工具时都会检查 Session 的初始工作区目录。
+
+两种界面语言中的页面类型均显示为 `doc`、`wiki` 和 `table`。页面树、创建对话框和回收站分别使用文档、工作区和表格图标表示这三种类型。页面标题由用户命名。
+
+Wiki 页面使用 `wikiDesktop`；单文档页在数据中保存为 `docx` 类型，使用 `docxSingle`。每个页面的内容保存在 `pages/<pageId>/data`，运行状态保存在 `.local/workspaces/<pageId>`。切换页面或编辑模式保持同一个 kernel 进程；选择另一个知识库 `sourceRoot` 会创建新的 kernel 实例。打开单文档页进行编辑时，会通过内核的版本校验写入，为空正文初始化一个段落；搜索和 Agent 读取不会初始化文档。
 
 页面修改由内核比较当前版本后事务提交。同步比对文件内容清单，并在接受版本前通过内核的离线内容校验。复制期间关闭所有编辑器视图，当前内核继续持有会话锁。接收后通过持久化指针选择已校验的工作副本。
 
@@ -153,6 +159,6 @@ pnpm dsh plugin --profile agentwork add --workspace-root link:./packages/experim
 <details>
 <summary>维护者工作上下文</summary>
 
-构建所需资源后，使用 `DSH_WIKIMAN_RESOURCES=/path/to/wikiman-runtime pnpm run test:web:built apps/web/tests/wikiman.e2e.ts` 运行真实内核的 Web 验收。资源目录的 `bin/`、`siyuan-app/` 和 `wiki-app/` 包含两套运行时，合成知识库样例随本插件保存。测试覆盖原版思源标签页和编辑、portable 同步，以及使用模型回放的 Agent 读取和引用。
+构建所需资源后，使用 `DSH_WIKIMAN_RESOURCES=/path/to/wikiman-runtime pnpm run test:web:built apps/web/tests/wikiman.e2e.ts` 运行真实内核的 Web 验收。源码构建的 portable runtime 使用 `-t 'persists a browser edit|moves and restores|keeps native tabs'` 过滤；原版思源测试还需要资源目录包含 `bin/siyuan-kernel` 和 `siyuan-app/`。合成知识库样例随本插件保存。测试覆盖原版思源标签页和编辑、portable 同步，以及使用模型回放的 Agent 读取和引用。
 
 </details>

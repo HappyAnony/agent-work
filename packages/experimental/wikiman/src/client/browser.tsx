@@ -14,6 +14,7 @@ import type { WikiDocument } from '../types.ts'
 import { WikiWorkArea, type EditorActions, type WikiTarget, type WorkbenchSnapshot } from './work-area.tsx'
 import { en, zh } from './locales.ts'
 import { WikiPanel, type PanelActions } from './panel.tsx'
+import { PortableEditor } from './portable-workbench.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -69,15 +70,80 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
     const runtime = await unwrap(scope.remote.wikiman.runtime())
     scope.effect(() => scope.locale.register('wikiman', { en, zh }), 'wikiman: locale')
     const t = scope.locale.bind('wikiman')
-    let snapshot: WorkbenchSnapshot = { target: null, anchor: null }
+    let snapshot: WorkbenchSnapshot = { target: null, anchor: null, changed: false }
     const subscribers = new Set<() => void>()
     const update = (value: WorkbenchSnapshot) => {
       snapshot = value
       for (const listener of subscribers) listener()
     }
-    const select = (target: WikiTarget | null) => { update({ ...snapshot, target }) }
+    const select = (target: WikiTarget | null) => { update({ ...snapshot, target, changed: false }) }
+    const portable = new PortableEditor({
+      openEditor: async (_store, _session, pageId) => {
+        if (offered?.view.pageId === pageId) {
+          const value = offered.view
+          takeOffered()
+          return value
+        }
+        return (await unwrap(scope.remote.wikiman.openPage(pageId, lifetime.signal))).view
+      },
+      closeEditor: view => unwrap(scope.remote.wikiman.closeEditor(view.viewId)),
+      reportEditorDirty: () => Promise.resolve(),
+      documents: (target, cursor) => unwrap(scope.remote.wikiman.documents(target.pageId, cursor, lifetime.signal)),
+      resolve: (target, blockId) => unwrap(scope.remote.wikiman.resolveLink(target.pageId, blockId, lifetime.signal)),
+      locale: () => scope.locale.getLocale().active,
+      label: kind => t(kind === 'editor' ? 'editor' : 'resizePanes'),
+    }, undefined, {
+      current: (origin) => {
+        const current = snapshot.target
+        return (current?.kind === 'page' ? current.page.pageId : current?.document.pageId) === origin.pageId
+      },
+      select: (document) => { select({ kind: 'document', document, blockId: document.blockId }) },
+    })
+    const lifetime = new AbortController()
+    let offered: import('../types.ts').WikiPageEditor | undefined
+    const takeOffered = (): import('../types.ts').WikiPageEditor | undefined => {
+      const value = offered
+      offered = undefined
+      return value
+    }
+    let opening: Promise<void> = Promise.resolve()
+    let selection = 0
+    scope.effect(() => async () => {
+      lifetime.abort()
+      ++selection
+      await opening.catch((_error: unknown) => { /* Selection failures are reported by the work area. */ })
+      await portable.dispose()
+    }, 'wikiman: portable workbench')
     const editor: EditorActions = {
       runtime,
+      portable,
+      openPortable: (target) => {
+        const epoch = ++selection
+        const run = opening.catch((_error: unknown) => { /* A failed selection can be retried. */ }).then(async () => {
+          if (epoch !== selection) return
+          if (!target || target.kind === 'page' && target.page.type === 'table') {
+            await portable.release(() => Promise.resolve())
+            return
+          }
+          const prepared = target.kind === 'page'
+            ? await unwrap(scope.remote.wikiman.openPage(target.page.pageId, lifetime.signal))
+            : await unwrap(scope.remote.wikiman.openEditor(target.document, lifetime.signal))
+          offered = prepared
+          try {
+            if (epoch !== selection) return
+            if (snapshot.target === target) update({ ...snapshot, changed: target.kind === 'document' && prepared.document?.hash !== target.document.hash })
+            const { baseUrl, view } = prepared
+            await portable.open({ baseUrl, ...view }, target.kind === 'document' ? target.document : prepared.document ?? undefined,
+              target.kind === 'document' && target.blockId && prepared.document?.hash === target.document.hash
+                ? { blockId: target.blockId, hash: target.document.hash } : undefined)
+          } finally {
+            const unused = takeOffered()
+            if (unused !== undefined) await unwrap(scope.remote.wikiman.closeEditor(unused.view.viewId))
+          }
+        })
+        opening = run
+        return run
+      },
       getSnapshot: () => snapshot,
       subscribe: (listener) => { subscribers.add(listener); return () => { subscribers.delete(listener) } },
       select,

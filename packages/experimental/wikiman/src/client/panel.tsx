@@ -2,13 +2,14 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import {
   Button, IconChevronDownOutlineRegular, IconChevronRightOutlineRegular, IconEllipsisOutlineRegular,
-  IconFolderOpenOutlineRegular, Input, Menu, MenuItemButton, Tooltip,
+  Input, Menu, MenuItemButton, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WikiCreatePage, WikiListing, WikiPage, WikiPageChange, WikiRuntime } from '../types.ts'
 import { LibraryTools, type LibraryActions } from './library-tools.tsx'
 import { PageMaintenance } from './page-maintenance.tsx'
 import { NewPageDialog } from './new-page.tsx'
+import { PageTypeIcon, pageTypeLabels } from './page-type.tsx'
 import type { EditorActions, WorkbenchSnapshot } from './work-area.tsx'
 import css from './wiki.module.css'
 
@@ -72,7 +73,6 @@ export function WikiPanel({
   const [creating, setCreating] = useState(false)
   const [maintenance, setMaintenance] = useState<{ page: WikiPage | null } | null>(null)
   const titleQuery = query.trim()
-  const native = runtime === 'siyuan'
   const rows = useMemo(() => treeRows(tree.items, titleQuery, collapsed), [tree.items, titleQuery, collapsed])
   const pageId = target?.kind === 'document' ? target.document.pageId : target?.page.pageId
 
@@ -93,12 +93,12 @@ export function WikiPanel({
     if (target) { choseInitial.current = true; return }
     if (choseInitial.current || titleQuery || tree.items.length === 0) return
     const parents = new Set(tree.items.map(item => item.parentId))
-    const wiki = tree.items.find(item => item.type === 'wiki' && (!native || !parents.has(item.pageId)))
+    const wiki = tree.items.find(item => item.type === 'wiki' && !parents.has(item.pageId))
     const docx = tree.items.find(item => item.type === 'docx')
-    const page = native ? wiki ?? docx ?? tree.items.find(item => item.type === 'wiki') : docx ?? wiki
+    const page = wiki ?? docx ?? tree.items.find(item => item.type === 'wiki')
     choseInitial.current = true
     if (page) select({ kind: 'page', page })
-  }, [native, select, target, tree.items, titleQuery])
+  }, [select, target, tree.items, titleQuery])
 
   useEffect(() => {
     if (!pageId) return
@@ -125,22 +125,10 @@ export function WikiPanel({
     select(null)
   }
 
-  return <main className={native ? css.siyuanPage : css.page}>
-    {!native && <header className={css.heading}>
-      <h1>{t('title')}</h1>
-      <div className={css.headingActions}>
-        <Button size="sm" onClick={() => { setCursor(''); setRefresh(value => value + 1) }}>{t('refresh')}</Button>
-        <Button size="sm" disabled={!activePage} onClick={() => {
-          if (activePage) { setMaintenance({ page: activePage }); select(null) }
-        }}>{t('managePage')}</Button>
-        <Button size="sm" onClick={() => { setMaintenance({ page: null }); select(null) }}>{t('trash')}</Button>
-        <Button size="sm" onClick={() => { setLibraryTools(true); select(null) }}>{t('wikiLibraryTools')}</Button>
-        <Button size="sm" variant="primary" onClick={() => { setCreating(true) }}>{t('newPage')}</Button>
-      </div>
-    </header>}
+  return <main className={css.siyuanPage}>
     <div className={css.columns}>
       <nav className={css.list} aria-label={t('pages')}>
-        {native && <header className={css.pageTreeHeader}>
+        {<header className={css.pageTreeHeader}>
           <h1>{t('title')}</h1>
           <Menu open={menu} onClose={() => { setMenu(false) }} portal autoFocus align="end" anchor={
             <Tooltip label={t('pageActions')} portal>
@@ -156,6 +144,7 @@ export function WikiPanel({
               if (activePage) manage(activePage)
             }}>{t('managePage')}</MenuItemButton>
             <MenuItemButton onSelect={() => { setMenu(false); manage(null) }}>{t('trash')}</MenuItemButton>
+            {runtime === 'portable' && <MenuItemButton onSelect={() => { setMenu(false); setLibraryTools(true); select(null) }}>{t('wikiLibraryTools')}</MenuItemButton>}
             <MenuItemButton onSelect={() => { setMenu(false); refreshPages() }}>{t('refresh')}</MenuItemButton>
             {target && <MenuItemButton onSelect={() => { setMenu(false); select(null) }}>{t('saveClose')}</MenuItemButton>}
           </Menu>
@@ -182,9 +171,9 @@ export function WikiPanel({
               : <IconChevronDownOutlineRegular size={12} aria-hidden="true" />}
           </Button> : <span className={css.disclosureGap} />}
           <Button size="sm" className={css.row}
-            icon={<IconFolderOpenOutlineRegular size={14} aria-hidden="true" />}
+            icon={<PageTypeIcon type={page.type} />}
             aria-pressed={page.pageId === pageId}
-            title={page.name}
+            title={`${page.name} · ${t(pageTypeLabels[page.type])}`}
             onClick={() => { if (page.pageId !== pageId) select({ kind: 'page', page }) }}>
             <span>{page.name}</span>
           </Button>

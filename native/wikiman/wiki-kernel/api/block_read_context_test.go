@@ -1,0 +1,187 @@
+package api
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"github.com/gin-gonic/gin"
+	"net/http/httptest"
+	"testing"
+)
+
+func TestBlockReadControllersUseRequestCancellation(t *testing.T) {
+	for _, tc := range []struct {
+		name, body string
+		handler    func(*gin.Context)
+	}{
+		{"exportAsFile", `{}`, exportAsFile},
+		{"exportConfiguration", `{}`, exportConf},
+		{"importConfiguration", `{}`, importConf},
+		{"exportWebDAV", `{}`, exportSyncProviderWebDAV},
+		{"importWebDAV", `{}`, importSyncProviderWebDAV},
+		{"exportS3", `{}`, exportSyncProviderS3},
+		{"importS3", `{}`, importSyncProviderS3},
+		{"getAttributeViewItemIDsByBoundIDs", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, getAttributeViewItemIDsByBoundIDs},
+		{"getAttributeViewBoundBlockIDsByItemIDs", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, getAttributeViewBoundBlockIDsByItemIDs},
+		{"getAttributeViewAddingBlockDefaultValues", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, getAttributeViewAddingBlockDefaultValues},
+		{"batchReplaceAttributeViewBlocks", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, batchReplaceAttributeViewBlocks},
+		{"setAttrViewGroup", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, setAttrViewGroup},
+		{"changeAttrViewLayout", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, changeAttrViewLayout},
+		{"duplicateAttributeViewBlock", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, duplicateAttributeViewBlock},
+		{"getAttributeViewKeysByAvID", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, getAttributeViewKeysByAvID},
+		{"getAttributeViewKeysByID", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, getAttributeViewKeysByID},
+		{"getMirrorDatabaseBlocks", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, getMirrorDatabaseBlocks},
+		{"setDatabaseBlockView", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, setDatabaseBlockView},
+		{"getAttributeViewPrimaryKeyValues", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, getAttributeViewPrimaryKeyValues},
+		{"appendAttributeViewDetachedBlocksWithValues", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, appendAttributeViewDetachedBlocksWithValues},
+		{"addAttributeViewBlocks", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, addAttributeViewBlocks},
+		{"removeAttributeViewBlocks", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, removeAttributeViewBlocks},
+		{"addAttributeViewKey", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, addAttributeViewKey},
+		{"removeAttributeViewKey", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, removeAttributeViewKey},
+		{"sortAttributeViewViewKey", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, sortAttributeViewViewKey},
+		{"sortAttributeViewKey", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, sortAttributeViewKey},
+		{"getAttributeViewFilterSort", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, getAttributeViewFilterSort},
+		{"searchAttributeViewNonRelationKey", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, searchAttributeViewNonRelationKey},
+		{"searchAttributeViewRollupDestKeys", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, searchAttributeViewRollupDestKeys},
+		{"searchAttributeViewRelationKey", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, searchAttributeViewRelationKey},
+		{"getAttributeView", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, getAttributeView},
+		{"renderAttributeView", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, renderAttributeView},
+		{"getCurrentAttrViewImages", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, getCurrentAttrViewImages},
+		{"getAttributeViewKeys", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, getAttributeViewKeys},
+		{"setAttributeViewBlockAttr", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, setAttributeViewBlockAttr},
+		{"batchSetAttributeViewBlockAttrs", `{"avID":"20261029150000-deepav1","id":"20261029150000-deepav1","blockID":"20261028140002-refdef1","viewID":"view","blockIDs":[],"itemIDs":[],"keyIDs":[],"isDetached":true,"oldNew":[],"group":{},"layoutType":"table","page":1,"pageSize":10,"keyword":"","blocksValues":[],"srcs":[],"srcIDs":[],"keyID":"key","keyName":"Key","keyType":"text","keyIcon":"","previousKeyID":"","itemID":"row","value":{},"values":[]}`, batchSetAttributeViewBlockAttrs},
+		{"device_getEmojiConf", `{"layout":{},"token":"t","accessAuthCode":"a","lockScreenMode":1,"mode":1,"networkServe":true,"autoLaunch":1,"downloadInstallPkg":true,"scheme":"http","host":"localhost","port":"8080"}`, getEmojiConf},
+		{"device_getConf", `{"layout":{},"token":"t","accessAuthCode":"a","lockScreenMode":1,"mode":1,"networkServe":true,"autoLaunch":1,"downloadInstallPkg":true,"scheme":"http","host":"localhost","port":"8080"}`, getConf},
+		{"device_setUILayout", `{"layout":{},"token":"t","accessAuthCode":"a","lockScreenMode":1,"mode":1,"networkServe":true,"autoLaunch":1,"downloadInstallPkg":true,"scheme":"http","host":"localhost","port":"8080"}`, setUILayout},
+		{"device_setAPIToken", `{"layout":{},"token":"t","accessAuthCode":"a","lockScreenMode":1,"mode":1,"networkServe":true,"autoLaunch":1,"downloadInstallPkg":true,"scheme":"http","host":"localhost","port":"8080"}`, setAPIToken},
+		{"device_setAccessAuthCode", `{"layout":{},"token":"t","accessAuthCode":"a","lockScreenMode":1,"mode":1,"networkServe":true,"autoLaunch":1,"downloadInstallPkg":true,"scheme":"http","host":"localhost","port":"8080"}`, setAccessAuthCode},
+		{"device_setFollowSystemLockScreen", `{"layout":{},"token":"t","accessAuthCode":"a","lockScreenMode":1,"mode":1,"networkServe":true,"autoLaunch":1,"downloadInstallPkg":true,"scheme":"http","host":"localhost","port":"8080"}`, setFollowSystemLockScreen},
+		{"device_setAppearanceMode", `{"layout":{},"token":"t","accessAuthCode":"a","lockScreenMode":1,"mode":1,"networkServe":true,"autoLaunch":1,"downloadInstallPkg":true,"scheme":"http","host":"localhost","port":"8080"}`, setAppearanceMode},
+		{"device_setNetworkServe", `{"layout":{},"token":"t","accessAuthCode":"a","lockScreenMode":1,"mode":1,"networkServe":true,"autoLaunch":1,"downloadInstallPkg":true,"scheme":"http","host":"localhost","port":"8080"}`, setNetworkServe},
+		{"device_setAutoLaunch", `{"layout":{},"token":"t","accessAuthCode":"a","lockScreenMode":1,"mode":1,"networkServe":true,"autoLaunch":1,"downloadInstallPkg":true,"scheme":"http","host":"localhost","port":"8080"}`, setAutoLaunch},
+		{"device_setDownloadInstallPkg", `{"layout":{},"token":"t","accessAuthCode":"a","lockScreenMode":1,"mode":1,"networkServe":true,"autoLaunch":1,"downloadInstallPkg":true,"scheme":"http","host":"localhost","port":"8080"}`, setDownloadInstallPkg},
+		{"device_setNetworkProxy", `{"layout":{},"token":"t","accessAuthCode":"a","lockScreenMode":1,"mode":1,"networkServe":true,"autoLaunch":1,"downloadInstallPkg":true,"scheme":"http","host":"localhost","port":"8080"}`, setNetworkProxy},
+		{"creationPath", `{"notebook":"20261028140000-refbox1"}`, getDocCreateSavePath},
+		{"referenceCreationPath", `{"notebook":"20261028140000-refbox1"}`, getRefCreateSavePath},
+		{"forumExport", `{"id":"20261028140001-refdoc1"}`, export2Liandi},
+		{"sqlQuery", `{"stmt":"SELECT 1"}`, SQL},
+		{"repoRetention", `{"days":7}`, setRepoIndexRetentionDays},
+		{"repoDailyRetention", `{"indexes":7}`, setRetentionIndexesDaily},
+		{"deviceChangelog", `{}`, getChangelog},
+		{"workspaceInfo", `{}`, getWorkspaceInfo},
+		{"advisoryFilename", `{"path":"/tmp/probe"}`, getUniqueFilename},
+		{"readAttributes", `{"id":"20261028140002-refdef1"}`, getBlockAttrs},
+		{"readBatchAttributes", `{"ids":["20261028140002-refdef1"]}`, batchGetBlockAttrs},
+		{"attributeViewSearch", `{"keyword":"query","excludes":[]}`, searchAttributeView},
+		{"duplicateDocument", `{"id":"20261028140001-refdoc1"}`, duplicateDoc},
+		{"vacuumIndexes", `{}`, vacuumDataIndex},
+		{"documentSort", `{"notebook":"20261028140000-refbox1","paths":["/20261028140001-refdoc1.docj"]}`, changeSort},
+		{"remoteAssets", `{"id":"20261028140001-refdoc1"}`, netAssets2LocalAssets},
+		{"remoteImages", `{"id":"20261028140001-refdoc1","url":"https://example.invalid"}`, netImg2LocalAssets},
+		{"exportData", `{}`, exportData},
+		{"exportDataFolder", `{"folder":"/tmp/r02-export"}`, exportDataInFolder},
+		{"exportResources", `{"paths":["data/assets/file.txt"],"name":"bundle"}`, exportResources},
+		{"exportLogs", `{}`, exportLog},
+		{"exportDocx", `{"id":"20261028140001-refdoc1","savePath":"/tmp/r02-export","removeAssets":true}`, exportDocx},
+		{"notebookInfo", `{"notebook":"20261028140000-refbox1"}`, getNotebookInfo},
+		{"notebookOpen", `{"notebook":"20261028140000-refbox1"}`, openNotebook},
+		{"notebookRemove", `{"notebook":"20261028140000-refbox1"}`, removeNotebook},
+		{"notebookClose", `{"notebook":"20261028140000-refbox1"}`, closeNotebook},
+		{"notebookCreate", `{"name":"new notebook"}`, createNotebook},
+		{"notebookConfiguration", `{"notebook":"20261028140000-refbox1"}`, getNotebookConf},
+		{"notebookConfigurationWrite", `{"notebook":"20261028140000-refbox1","conf":{}}`, setNotebookConf},
+		{"notebookIcon", `{"notebook":"20261028140000-refbox1","icon":"test"}`, setNotebookIcon},
+		{"notebookSort", `{"notebooks":["20261028140000-refbox1"]}`, changeSortNotebook},
+		{"notebookRename", `{"notebook":"20261028140000-refbox1","name":"test"}`, renameNotebook},
+		{"renameAsset", `{"oldPath":"assets/old.png","newName":"new"}`, renameAsset},
+		{"insertLocalAssets", `{"id":"20261028140001-refdoc1","assetPaths":[],"isUpload":true}`, insertLocalAssets},
+		{"removeUnusedAsset", `{"path":"assets/file.txt"}`, removeUnusedAsset},
+		{"removeUnusedAssets", `{}`, removeUnusedAssets},
+		{"documentAssets", `{"id":"20261028140001-refdoc1"}`, getDocAssets},
+		{"documentImages", `{"id":"20261028140001-refdoc1"}`, getDocImageAssets},
+		{"assetNameSearch", `{"k":"needle"}`, searchAsset},
+		{"unusedAssets", `{}`, getUnusedAssets},
+		{"missingAssets", `{}`, getMissingAssets},
+		{"documentTreeIDs", `{"notebook":"20261028140000-refbox1","path":"/"}`, listDocTree},
+		{"snapshotAV", `{"snapshot":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","id":"20261029150000-deepav1"}`, renderSnapshotAttributeView},
+		{"historyAV", `{"created":"123","id":"20261029150000-deepav1"}`, renderHistoryAttributeView},
+		{"repoFile", `{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}`, getRepoFile},
+		{"repoPreview", `{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}`, openRepoSnapshotDoc},
+		{"repoDiff", `{"left":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","right":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}`, diffRepoSnapshots},
+		{"repoSnapshots", `{"page":1}`, getRepoSnapshots},
+		{"repoTags", `{}`, getRepoTagSnapshots},
+		{"assetHistoryRestore", `{"historyPath":"/history/file.txt"}`, rollbackAssetsHistory},
+		{"notebookHistoryRestore", `{"historyPath":"/history/notebook"}`, rollbackNotebookHistory},
+		{"notebookHistory", `{}`, getNotebookHistory},
+		{"historyClear", `{}`, clearWorkspaceHistory},
+		{"historyRender", `{"historyPath":"/history.docj"}`, getDocHistoryContent},
+		{"historySearch", `{"query":"needle"}`, searchHistory},
+		{"historyItems", `{"query":"needle","created":"123"}`, getHistoryItems},
+		{"blockLocation", `{"id":"20261028140002-refdef1"}`, getBlockInfo},
+		{"reloadIcons", `{}`, reloadIcon},
+		{"documentSearch", `{"k":"query"}`, searchDocs},
+		{"path", `{"notebook":"20261028140000-refbox1","path":"/a.docj"}`, getHPathByPath},
+		{"paths", `{"paths":["/a.docj"]}`, getHPathsByPaths},
+		{"pathID", `{"id":"20261028140002-refdef1"}`, getHPathByID},
+		{"pathLocation", `{"id":"20261028140002-refdef1"}`, getPathByID},
+		{"pathFull", `{"id":"a"}`, getFullHPathByID},
+		{"pathIDs", `{"path":"/a","notebook":"20261028140000-refbox1"}`, getIDsByHPath},
+		{"invalidRefs", `{}`, listInvalidBlockRefs},
+		{"referenceTransfer", `{"fromID":"20261028140002-refdef1","toID":"20261028140004-refpar1"}`, transferBlockRef},
+		{"referenceSwap", `{"refID":"20261028140002-refdef1","defID":"20261028140004-refpar1","includeChildren":false}`, swapBlockRef},
+		{"reloadTag", `{}`, reloadTag},
+		{"reloadFiletree", `{}`, reloadFiletree},
+		{"reloadProtyle", `{"id":"a"}`, reloadProtyle},
+		{"reloadAV", `{"id":"a"}`, reloadAttributeView},
+		{"syncState", `{}`, getSyncInfo},
+		{"syncPerform", `{}`, performSync},
+		{"syncBootPerform", `{}`, performBootSync},
+		{"children", `{"id":"20261028140002-refdef1"}`, getChildBlocks},
+		{"tail", `{"id":"20261028140002-refdef1"}`, getTailChildBlocks},
+		{"markdown", `{"id":"20261028140002-refdef1"}`, getBlockKramdown},
+		{"headingIDs", `{"id":"20261028140002-refdef1"}`, getHeadingChildrenIDs},
+		{"headingDOM", `{"id":"20261028140002-refdef1"}`, getHeadingChildrenDOM},
+		{"dom", `{"id":"20261028140002-refdef1"}`, getBlockDOM},
+		{"doms", `{"ids":["20261028140002-refdef1"]}`, getBlockDOMs},
+		{"embedDOM", `{"id":"20261028140002-refdef1"}`, getBlockDOMWithEmbed},
+		{"embedDOMs", `{"ids":["20261028140002-refdef1"]}`, getBlockDOMsWithEmbed},
+		{"outline", `{"id":"20261028140002-refdef1"}`, getDocOutline},
+		{"checkRefs", `{"ids":["20261028140002-refdef1"]}`, checkBlockRef},
+		{"refs", `{"id":"20261028140002-refdef1"}`, getRefIDs},
+		{"annotation", `{"id":"annotation"}`, getRefIDsByFileAnnotationID},
+		{"definitions", `{"anchor":"definition","excludeIDs":[]}`, getBlockDefIDsByRefText},
+		{"backlink", `{"id":"20261028140002-refdef1","k":"","mk":""}`, getBacklink},
+		{"backlink2", `{"id":"20261028140002-refdef1","k":"","mk":""}`, getBacklink2},
+		{"backlinkDoc", `{"defID":"20261028140002-refdef1","refTreeID":"20261028140003-refdoc2","keyword":""}`, getBacklinkDoc},
+		{"backmentionDoc", `{"defID":"20261028140002-refdef1","refTreeID":"20261028140003-refdoc2","keyword":""}`, getBackmentionDoc},
+		{"headingDelete", `{"id":"20261028140002-refdef1"}`, getHeadingDeleteTransaction},
+		{"headingInsert", `{"id":"20261028140002-refdef1"}`, getHeadingInsertTransaction},
+		{"headingLevel", `{"id":"20261028140002-refdef1","level":2}`, getHeadingLevelTransaction},
+		{"headingAppend", `{"id":"20261028140002-refdef1","childrenDOM":""}`, appendHeadingChildren},
+		{"embed", `{"embedBlockID":"20261104193000-emb0001","includeIDs":[]}`, getEmbedBlock},
+		{"embedSearch", `{"embedBlockID":"20261104193000-emb0001","stmt":"SELECT * FROM blocks","excludeIDs":[]}`, searchEmbedBlock},
+		{"document", `{"id":"20261028140002-refdef1"}`, getDoc},
+		{"documentRange", `{"id":"20261028140002-refdef1","startID":"20261028140002-refdef1","endID":"20261028140002-refdef1"}`, getDoc},
+		{"replace", `{"k":"a","r":"b","ids":[]}`, findReplace},
+		{"assetSearch", `{"query":"Alpha"}`, fullTextSearchAssetContent},
+		{"assetDetail", `{"id":"20261104200000-ast0001","query":"Alpha","queryMethod":0}`, getAssetContent},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest("POST", "/", bytes.NewBufferString(tc.body)).WithContext(ctx)
+			c.Request.Header.Set("Content-Type", "application/json")
+			tc.handler(c)
+			var result struct {
+				Code int
+				Msg  string
+				Data interface{}
+			}
+			if e := json.Unmarshal(w.Body.Bytes(), &result); e != nil || result.Code == 0 || result.Msg != context.Canceled.Error() {
+				t.Fatal(w.Body.String(), e)
+			}
+		})
+	}
+}

@@ -1,0 +1,29 @@
+// The scoped workbench uses native dock and menu components inside an iframe.
+.portable-desktop .dock__item {
+  appearance: none;
+  border: 0;
+  background-color: transparent;
+  font: inherit;
+  flex-shrink: 0;
+}
+
+.portable-desktop .dock__item:hover,
+.portable-desktop .dock__item--active {
+  background-color: var(--b3-theme-background-light);
+}
+
+.portable-document-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 8px;
+  min-height: 24px;
+  color: var(--b3-theme-on-surface);
+  background: var(--b3-theme-background);
+}
+
+.portable-document-actions [role="status"]:empty {
+  display: none;
+}

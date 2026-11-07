@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write native/wikiman/README.md
+/wikiman-portable-runtime:
+  en: 0a19f1d9dfe93a4c
+  zh: a041844557f20a67
+/wikiman-portable-runtime/build:
+  en: 9f3cdb8ff87a2f57
+  zh: 64f93beb8a0d0d6c
+/wikiman-portable-runtime/verify:
+  en: 426f5c448c5aea9c
+  zh: 5c67cd73bc4052f1
+/wikiman-portable-runtime/local-feature-policy:
+  en: 67870509cf03cd32
+  zh: 7c2e7edca56cf832
+/wikiman-portable-runtime/source-maintenance:
+  en: fed31d5f9ae92f53
+  zh: 54d15899c570f254

@@ -56,4 +56,20 @@ describe('DSH package license gate', () => {
       'packages/core/agent/package.json: @deepseek-ai/dsh-agent must declare "license": "MIT"; found undefined.',
     ])
   })
+
+  it('requires both source licenses only for the imported WikiMan package', () => {
+    const root = createWorkspace()
+    const file = 'packages/experimental/wikiman/package.json'
+    writeManifest(root, file, { name: '@deepseek-ai/dsh-wikiman', license: 'MIT AND AGPL-3.0-or-later' })
+    expect(inspectDshPackageLicenses(root).failures).toEqual([])
+    writeManifest(root, file, { name: '@deepseek-ai/dsh-wikiman', license: 'MIT' })
+    expect(inspectDshPackageLicenses(root).failures).toEqual([
+      `${file}: @deepseek-ai/dsh-wikiman must declare "license": "MIT AND AGPL-3.0-or-later"; found "MIT".`,
+    ])
+    writeManifest(root, file, { name: '@deepseek-ai/dsh-other', license: 'MIT AND AGPL-3.0-or-later' })
+    expect(inspectDshPackageLicenses(root).failures).toEqual([
+      `${file}: @deepseek-ai/dsh-other must declare "license": "MIT"; found "MIT AND AGPL-3.0-or-later".`,
+    ])
+  })
+
 })

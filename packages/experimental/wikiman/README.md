@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Open WikiMan from the DSH Web sidebar. The original SiYuan mode combines the WikiMan page tree with SiYuan’s document tree, tabs and editor. The portable mode supports legacy import and verified peer sync. The configured workspace can search saved documents and reopen a cited original from the Session.
+Open WikiMan from the DSH Web sidebar. The source-owned portable runtime combines the WikiMan page tree with the native document tree, tabs, splits and rich editor, and supports legacy import and verified peer sync. The configured workspace can search saved documents and reopen a cited original from the Session. Original SiYuan mode remains available for compatibility.
 
 ## Table of Contents
 
@@ -59,7 +59,7 @@ Run `pnpm dsh --profile agentwork --patch /path/to/wiki.patch.yml --host 127.0.0
 
 ### Use the portable workbench
 
-Prepare the matching portable `wiki-kernel` and `wiki-app` artifacts and a copy of a portable store whose root contains `store.json`. Mount the plugin with the following patch. Replace the four paths with absolute local paths. The workspace path is the directory to select when creating a Chat Session. The log upload setting prevents the official DeepSeek API from receiving the additional canonical Session log. The selected model still receives the excerpts used to answer the question.
+Build the modified source pair with `bash native/wikiman/build.sh`; see the [runtime build instructions](../../../native/wikiman/README.md) for prerequisites, export helpers and licenses. Use `native/wikiman/out/bin/wiki-kernel` and `native/wikiman/out/wiki-app`, plus a portable store whose root contains `store.json`. Mount the plugin with the following patch. Replace the four paths with absolute local paths. The workspace path is the directory to select when creating a Chat Session. The log upload setting prevents the official DeepSeek API from receiving the additional canonical Session log. The selected model still receives the excerpts used to answer the question.
 
 ```yaml
 - id: session-log-deepseek
@@ -74,21 +74,23 @@ Prepare the matching portable `wiki-kernel` and `wiki-app` artifacts and a copy 
         workspaceRoot: /path/to/project
 ```
 
-Start with `pnpm dsh --profile agentwork --patch /path/to/wiki.patch.yml --port 0`. Open **Knowledge base**, select a page in the tree or choose **New page**, and edit in the native work area. Choose **Save and close** to finish editing. Ask the configured workspace about a distinctive term in that paragraph. Expand the turn's tool activity and choose **Open Wiki source** on the read result.
+Start with `pnpm dsh --profile agentwork --patch /path/to/wiki.patch.yml --port 0`. Open **Knowledge base**, select a page in the tree or choose **Page actions → New page**, and edit in the native work area. Native tabs support pinning, close actions, dragging and splits; their layout restores when reopening the page. Choose **Page actions → Save and close** to save every tab and finish editing. Ask the configured workspace about a distinctive term in that paragraph. Expand the turn's tool activity and choose **Open Wiki source** on the read result.
 
-Select **Manage page** to rename the selected page, change its parent and sort rank, or send it and its active descendants to the **Recycle bin**. Restoring a parent also restores the descendants recycled with it.
+Select **Page actions → Manage page** to rename the selected page, change its parent and sort rank, or send it and its active descendants to the **Recycle bin**. Restoring a parent also restores the descendants recycled with it.
 
 ### Import a legacy library
 
-Close legacy WikiMan and open **Knowledge base → Library tools → Import legacy library**. Enter the folder containing `page.db`, an existing destination folder outside the legacy library, and a name. Preview the file inventory and native validation warnings. **Create portable copy** publishes a new directory without editing the legacy library. Set `sourceRoot` to the reported path and restart DSH to use that store.
+Close legacy WikiMan and open **Knowledge base → Page actions → Library tools → Import legacy library**. Enter the folder containing `page.db`, an existing destination folder outside the legacy library, and a name. Preview the file inventory and native validation warnings. **Create portable copy** publishes a new directory without editing the legacy library. Set `sourceRoot` to the reported path and restart DSH to use that store.
 
-Page IDs, hierarchy, extension metadata, document contents and attachments carry over. A legacy document page needs one identifiable entry document. The report counts legacy deletion records that contain no restorable document data.
+Page IDs, hierarchy, extension metadata, document contents and attachments carry over. A legacy document page needs one identifiable entry document. The report counts legacy deletion records that contain no restorable document data. When retaining historical native citations, add that library’s old store ID to `legacyCitationStoreIds` in the plugin profile; aliases apply only to this configured imported library, and documents are revalidated before opening.
 
 ### Sync two portable copies
 
 Start with two copies of the same portable store and point both plugins' `syncDirectory` to the same existing shared filesystem directory, outside both sources. The filesystem must support atomic directory creation and rename across both clients. Open **Library tools → Portable sync → Sync now** on each copy once to establish a common version. Repeat on both sides after editing. A received version becomes active in DSH and persists across restarts.
 
 If both copies change since the common version, DSH preserves both in `<sourceRoot>/.local/dsh-wikiman-sync/conflicts/<digest>` and reports their digests. The shared folder also keeps previously published versions. Compare the copies before deciding how to reconcile the changes. The original source directory remains available when DSH opens a received working copy.
+
+The plugin includes adapted AGPL portable-host files alongside MIT DSH code; its package license records both. The source-owned runtime and bundled resources retain their original licenses.
 
 The [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-wikiman) lists operation time, response, scan and source size limits.
 
@@ -102,7 +104,11 @@ The [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-wikim
 
 In SiYuan mode the Host starts IronMan’s original kernel for the selected page workspace. A one-use loopback handoff sets the native HttpOnly session cookie. A same-origin frame waits for native editor transactions before switching pages. The browser connection holds the kernel lease and releases it when the tab closes. Agent reads consume committed document files. DSH records page recycle status in a separate SQLite table.
 
-In portable mode the Host starts a single portable kernel on a private loopback port and owns its process and credential. The browser connects the supplied editor assets with a page-scoped view on a private message channel. Changing Wiki pages drains the save queue before the Host revokes the old view. Switching to Chat parks the editor without reloading its iframe. Browser Remotes serve the local owner. The tool executor checks the Session's original workspace directory on every call.
+In portable mode the Host starts the source-built Wiki kernel on a private loopback port and owns its process and credential. WikiMan account, membership and official cloud services are removed; DSH model authentication remains available. The browser connects the supplied editor assets with a page-scoped view on a private message channel. Changing Wiki pages drains every tab before the Host revokes the old views. The browser connection owns these leases and releases them on disconnect. Switching to Chat parks the editor without reloading its iframe. Browser Remotes serve the local owner. The tool executor checks the Session's original workspace directory on every call.
+
+The page types are labeled `doc`, `wiki` and `table` in both interface languages. The page tree, creation dialog and recycle bin use document, workspace and spreadsheet glyphs for these types. Page titles remain user-defined.
+
+Wiki pages use `wikiDesktop`; document pages have the stored type `docx` and use `docxSingle`. Every page keeps its content under `pages/<pageId>/data` and its runtime state under `.local/workspaces/<pageId>`. Switching pages or editor modes retains the same kernel process. Selecting a different knowledge-base `sourceRoot` creates another kernel instance. Opening a single document for editing initializes an empty body with one paragraph through a revision-checked native write; search and Agent reads do not initialize documents.
 
 Page mutations use native compare-and-set transactions. Sync checks byte inventories and runs the kernel’s offline content validation before accepting a generation. The current kernel holds its session lock during copying, with all editor views closed. A persisted pointer selects the verified working copy after reception.
 
@@ -153,6 +159,6 @@ The schemas are stable within the workspace, and tool results append to the exis
 <details>
 <summary>Working context for maintainers</summary>
 
-Run the real-kernel Web acceptance test with `DSH_WIKIMAN_RESOURCES=/path/to/wikiman-runtime pnpm run test:web:built apps/web/tests/wikiman.e2e.ts` after building the required assets. The resource directory contains both runtime pairs under `bin/`, `siyuan-app/` and `wiki-app/`. The synthetic source fixture lives in this package. The tests exercise original SiYuan tabs and editing, portable sync, and the Agent read and citation path with recorded model output.
+Run the real-kernel Web acceptance test with `DSH_WIKIMAN_RESOURCES=/path/to/wikiman-runtime pnpm run test:web:built apps/web/tests/wikiman.e2e.ts` after building the required assets. For the source-built portable runtime, filter with `-t 'persists a browser edit|moves and restores|keeps native tabs'`. Running the original SiYuan tests also requires `bin/siyuan-kernel` and `siyuan-app/` in the resource directory. The synthetic source fixture lives in this package. The tests exercise original SiYuan tabs and editing, portable sync, and the Agent read and citation path with recorded model output.
 
 </details>

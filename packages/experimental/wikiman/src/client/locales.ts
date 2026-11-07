@@ -1,6 +1,6 @@
 /** Labels for the Wiki panel, editor and original-document citation. */
 export const en = {
-  title: 'Knowledge base', pages: 'Pages', findPages: 'Find pages', noPagesFound: 'No matching pages.', unsaved: 'Unsaved changes', refresh: 'Refresh', loading: 'Loading…',
+  resizePanes: 'Resize Wiki panes', title: 'Knowledge base', pages: 'Pages', findPages: 'Find pages', noPagesFound: 'No matching pages.', unsaved: 'Unsaved changes', refresh: 'Refresh', loading: 'Loading…',
   more: 'Show more', listError: 'Could not load WikiMan. Try refreshing.', emptyPages: 'This knowledge base has no pages.',
   choosePage: 'Choose a page to open the WikiMan workbench.',
   tableUnsupported: 'This WikiMan version has no editor for table pages.', close: 'Close', saveClose: 'Save and close', saving: 'Saving…',
@@ -11,7 +11,7 @@ export const en = {
   restorePage: 'Restore', restoreParentFirst: 'Restore the parent page first.', emptyTrash: 'The recycle bin is empty.',
   pageChangeError: 'Could not confirm the page change. Refresh and check the current state.',
   pageConflict: 'This page changed. Refresh the tree before trying again.', closeBeforeMaintenance: 'Finish saving the current editor and retry.',
-  newPage: 'New page', pageName: 'Page name', pageType: 'Page type', docxPage: 'Document page', wikiPage: 'Wiki space', tablePage: 'Table page',
+  newPage: 'New page', pageName: 'Page name', pageType: 'Page type', docxPage: 'doc', wikiPage: 'wiki', tablePage: 'table',
   childPage: 'Create under the current page', createPage: 'Create page', createError: 'Could not confirm creation. Retry or refresh the page list.',
   retryEditor: 'Retry', openError: 'Could not open the WikiMan editor.', saveError: 'The editor could not close safely. Check your edits and try again.',
   versionChanged: 'The document has changed since this reference was recorded. You are viewing the current version.',
@@ -50,7 +50,7 @@ export const en = {
 
 /** Chinese labels use the same dictionary keys as the fallback locale. */
 export const zh: Record<keyof typeof en, string> = {
-  title: '知识库', pages: '页面', findPages: '查找页面', noPagesFound: '没有匹配的页面', unsaved: '有未保存的修改', refresh: '刷新', loading: '正在加载…',
+  resizePanes: '调整 Wiki 分屏大小', title: '知识库', pages: '页面', findPages: '查找页面', noPagesFound: '没有匹配的页面', unsaved: '有未保存的修改', refresh: '刷新', loading: '正在加载…',
   more: '显示更多', listError: '无法加载 WikiMan，请刷新后重试', emptyPages: '知识库中还没有页面',
   choosePage: '选择页面以打开 WikiMan 工作台',
   tableUnsupported: '当前 WikiMan 内核尚未提供表格页面的编辑器', close: '关闭', saveClose: '保存并关闭', saving: '正在保存…',
@@ -61,7 +61,7 @@ export const zh: Record<keyof typeof en, string> = {
   restorePage: '恢复', restoreParentFirst: '请先恢复父页面', emptyTrash: '回收站为空',
   pageChangeError: '未能确认页面修改结果，请刷新并检查当前状态',
   pageConflict: '页面已变化，请刷新页面树后重试', closeBeforeMaintenance: '请完成当前编辑器的保存后重试',
-  newPage: '新建页面', pageName: '页面名称', pageType: '页面类型', docxPage: '单文档页', wikiPage: 'Wiki 空间', tablePage: '表格页',
+  newPage: '新建页面', pageName: '页面名称', pageType: '页面类型', docxPage: 'doc', wikiPage: 'wiki', tablePage: 'table',
   childPage: '在当前页面下创建', createPage: '创建页面', createError: '未能确认创建结果，请重试或刷新页面列表',
   retryEditor: '重试', openError: '无法打开 WikiMan 编辑器', saveError: '编辑器未能安全关闭，请检查编辑内容后重试',
   versionChanged: '引用后原文已有更新，当前显示的是最新版本',

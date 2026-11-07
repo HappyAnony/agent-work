@@ -4,6 +4,8 @@ English | [中文](README.zh.md)
 
 Native source and public packages maintained with DeepSeek Harness. The [`system/` workspace](system/README.md) owns the Landlock launcher and POSIX flock binding, their platform packages, and the [release procedure](system/docs/release.md).
 
+[`wikiman/`](wikiman/README.md) owns the modified Go kernel and build-only native Wiki app used by the optional DSH WikiMan plugin. Its independent build, tests and licenses are documented in that subtree.
+
 ## Workspace and release boundary
 
 `system/` and its packages belong to the repository's root pnpm workspace and lockfile. Harness consumers use the current workspace entry package during development and CI, so a launcher contract change and its consumer update can land and be tested together.

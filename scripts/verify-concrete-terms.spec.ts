@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, symlinkSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -62,6 +62,18 @@ describe('concrete terminology policy', () => {
       '.agents/notes/implemented/process/current.md',
       blockedTerm,
     )).toEqual([{ file: '.agents/notes/implemented/process/current.md', line: 1 }])
+  })
+
+  it('preserves byte-pinned WikiMan source but rejects local edits and unrelated native files', () => {
+    const file = 'native/wikiman/wiki-kernel/internal/sourcetx/preferences_snapshot.go'
+    const source = readFileSync(new URL('../' + file, import.meta.url), 'utf8')
+    expect(findConcreteTermViolations(file, source)).toEqual([])
+    expect(findConcreteTermViolations(file, source + '\n' + blockedTerm).length).toBeGreaterThan(0)
+    const unrelated = 'native/wikiman/wiki-kernel/internal/new.go'
+    expect(findConcreteTermViolations(unrelated, blockedTerm)).toEqual([{ file: unrelated, line: 1 }])
+    expect(findConcreteTermViolations('native/other/source-snapshot.json', blockedTerm))
+      .toEqual([{ file: 'native/other/source-snapshot.json', line: 1 }])
+    expect(findConcreteTermViolations('native/wikiman/source-snapshot.json', blockedTerm)).toEqual([])
   })
 
   it('preserves historical identifiers only in alpha and RC release schema snapshots', () => {

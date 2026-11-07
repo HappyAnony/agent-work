@@ -56,6 +56,7 @@ export interface WikiPageEditor extends WikiEditorView {
 
 /** Host-validated native link with the target block and its committed document. */
 export interface WikiLink {
+  readonly mode: WikiEditorView['view']['mode']
   readonly document: WikiDocument
   readonly blockId: string
 }

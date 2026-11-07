@@ -51,3 +51,8 @@ native/system/test/bin/
 
 # Generated company-signed CUA release record.
 /packages/experimental/cua-macos/cua-helper.json
+
+# Isolated WikiMan source build outputs.
+/native/wikiman/out/
+/native/wikiman/wiki-app/stage/build/
+/native/wikiman/**/*.log

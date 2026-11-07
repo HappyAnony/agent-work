@@ -16,3 +16,7 @@ docs/persistence-changes/historical-formats/*.schema.json linguist-generated=tru
 
 # Unified patch blank context lines require their leading space.
 patches/*.patch whitespace=-blank-at-eol
+
+# Imported Wiki source and resource licenses retain their original whitespace.
+native/wikiman/wiki-app/** whitespace=-blank-at-eol,-blank-at-eof
+native/wikiman/wiki-kernel/** whitespace=-blank-at-eol,-blank-at-eof

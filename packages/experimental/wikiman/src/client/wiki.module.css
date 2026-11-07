@@ -57,6 +57,23 @@
   min-width: 0;
 }
 
+.pageLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pageLabel svg,
+.createForm svg {
+  flex-shrink: 0;
+}
+
+.pageLabel span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .disclosure,
 .disclosureGap {
   flex: 0 0 24px;
@@ -254,4 +271,17 @@
     border-inline-start: 0;
     border-block-start: 1px solid var(--dsw-alias-border-l4);
   }
+}
+
+.workbenchError {
+  position: fixed;
+  inset-block-end: 16px;
+  inset-inline-end: 16px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
 }

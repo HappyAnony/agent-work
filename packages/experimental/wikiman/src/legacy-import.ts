@@ -23,6 +23,7 @@ const legacyPage = z.object({
   update_at: z.number().int().positive(),
   type: z.union([z.literal(0), z.literal(1), z.literal(2)]),
   ext: z.string(),
+  deleted_at: z.iso.datetime().nullable(),
 })
 const nativeDocument = /^(\d{14}-[a-z0-9]{7})\/(?:\d{14}-[a-z0-9]{7}\/)*(\d{14}-[a-z0-9]{7})\.docj$/u
 const timestamp = (value: number) => new Date(value < 100_000_000_000 ? value * 1000 : value).toISOString()
@@ -43,7 +44,10 @@ async function readPages(database: string, limit: number) {
   const db = new DatabaseSync(database, { readOnly: true, allowExtension: false })
   try {
     db.exec('PRAGMA trusted_schema=OFF')
-    const pages = db.prepare('SELECT page_id, parent_id, name, rank, create_at, update_at, type, ext FROM pages ORDER BY page_id LIMIT ?')
+    const hasRecycle = db.prepare("SELECT 1 FROM sqlite_schema WHERE name = 'dsh_wiki_recycle' AND type = 'table'").get()
+    const recycledAt = hasRecycle ? '(SELECT deleted_at FROM dsh_wiki_recycle r WHERE r.page_id = pages.page_id)' : 'NULL'
+    const pages = db.prepare(`SELECT page_id, parent_id, name, rank, create_at, update_at, type, ext,
+      ${recycledAt} AS deleted_at FROM pages ORDER BY page_id LIMIT ?`)
       .all(limit + 1).map(row => legacyPage.parse(row))
     if (pages.length > limit) throw new WikiError('source_limit_exceeded')
     const hasTombstones = db.prepare("SELECT 1 FROM sqlite_schema WHERE name = 'page_tree_tombstones' AND type = 'table'").get()
@@ -117,7 +121,7 @@ export async function importLegacy(
       const record = {
         schemaVersion: 1, pageId: page.page_id, name: page.name, parentId: page.parent_id, rank: page.rank,
         type: (['docx', 'wiki', 'table'] as const)[page.type], revision: 1,
-        createdAt: timestamp(page.create_at), updatedAt: timestamp(page.update_at), deletedAt: null,
+        createdAt: timestamp(page.create_at), updatedAt: timestamp(page.update_at), deletedAt: page.deleted_at,
         entryDocument: page.type === 0 ? found[0] : null, ext,
       }
       const name = 'pages/' + page.page_id + '/page.json'

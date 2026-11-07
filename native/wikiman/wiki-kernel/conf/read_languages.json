@@ -1,0 +1,535 @@
+{
+  "ar_SA": {
+    "labels": {
+      "53": "لم يتم تمكين مزامنة البيانات",
+      "105": "بدون عنوان",
+      "259": "آخر %d أيام",
+      "260": "أمس",
+      "261": "اليوم",
+      "262": "غدًا",
+      "263": "التالي %d أيام",
+      "264": "الحقل [%s] فارغ",
+      "265": "خارج النطاق"
+    },
+    "time": {
+      "albl": "من قبل",
+      "blbl": "من الآن",
+      "now": "الآن",
+      "1s": "‫ثانية واحدة %s‬",
+      "xs": "‫%d ثواني %s‬",
+      "1m": "‫دقيقة واحدة %s‬",
+      "xm": "‫%d دقائق %s‬",
+      "1h": "‫ساعة واحدة %s‬",
+      "xh": "‫%d ساعات %s‬",
+      "1d": "‫يوم واحد %s‬",
+      "xd": "‫%d أيام %s‬",
+      "1w": "‫أسبوع واحد %s‬",
+      "xw": "‫%d أسابيع %s‬",
+      "1M": "‫شهر واحد %s‬",
+      "xM": "‫%d أشهر %s‬",
+      "1y": "‫سنة واحدة %s‬",
+      "2y": "‫سنتين %s‬",
+      "xy": "‫%d سنوات %s‬",
+      "max": "‫لفترة طويلة في %s‬"
+    },
+    "av": {
+      "table": "جدول",
+      "gallery": "بطاقة",
+      "kanban": "Kanban",
+      "key": "المفتاح الرئيسي",
+      "select": "تحديد"
+    }
+  },
+  "de_DE": {
+    "labels": {
+      "53": "Die Datensynchronisation wurde nicht aktiviert",
+      "105": "Ohne Titel",
+      "259": "Letzte %d Tage",
+      "260": "Gestern",
+      "261": "Heute",
+      "262": "Morgen",
+      "263": "Nächste %d Tage",
+      "264": "Das Feld [%s] ist leer",
+      "265": "Außerhalb des Bereichs"
+    },
+    "time": {
+      "albl": "vor",
+      "blbl": "von jetzt an",
+      "now": "jetzt",
+      "1s": "1 Sekunde %s",
+      "xs": "%d Sekunden %s",
+      "1m": "1 Minute %s",
+      "xm": "%d Minuten %s",
+      "1h": "1 Stunde %s",
+      "xh": "%d Stunden %s",
+      "1d": "1 Tag %s",
+      "xd": "%d Tage %s",
+      "1w": "1 Woche %s",
+      "xw": "%d Wochen %s",
+      "1M": "1 Monat %s",
+      "xM": "%d Monate %s",
+      "1y": "1 Jahr %s",
+      "2y": "2 Jahre %s",
+      "xy": "%d Jahre %s",
+      "max": "eine lange Weile %s"
+    },
+    "av": {
+      "table": "Tabelle",
+      "gallery": "Karte",
+      "kanban": "Kanban",
+      "key": "Primärschlüssel",
+      "select": "Auswählen"
+    }
+  },
+  "en_US": {
+    "labels": {
+      "53": "Data synchronization has not been enabled",
+      "105": "Untitled",
+      "259": "Last %d days",
+      "260": "Yesterday",
+      "261": "Today",
+      "262": "Tomorrow",
+      "263": "Next %d days",
+      "264": "Field [%s] is empty",
+      "265": "Out of range"
+    },
+    "time": {
+      "albl": "ago",
+      "blbl": "from now",
+      "now": "now",
+      "1s": "1 second %s",
+      "xs": "%d seconds %s",
+      "1m": "1 minute %s",
+      "xm": "%d minutes %s",
+      "1h": "1 hour %s",
+      "xh": "%d hours %s",
+      "1d": "1 day %s",
+      "xd": "%d days %s",
+      "1w": "1 week %s",
+      "xw": "%d weeks %s",
+      "1M": "1 month %s",
+      "xM": "%d months %s",
+      "1y": "1 year %s",
+      "2y": "2 years %s",
+      "xy": "%d years %s",
+      "max": "a long while %s"
+    },
+    "av": {
+      "table": "Table",
+      "gallery": "Card",
+      "kanban": "Kanban",
+      "key": "Primary Key",
+      "select": "Select"
+    }
+  },
+  "es_ES": {
+    "labels": {
+      "53": "No se ha habilitado la sincronizacion de datos",
+      "105": "Sin título",
+      "259": "Últimos %d días",
+      "260": "Ayer",
+      "261": "Hoy",
+      "262": "Mañana",
+      "263": "Próximos %d días",
+      "264": "El campo [%s] está vacío",
+      "265": "Fuera de rango"
+    },
+    "time": {
+      "albl": "hace",
+      "blbl": "a partir de ahora",
+      "now": "ahora",
+      "1s": "1 segundo %s",
+      "xs": "%d segundos %s",
+      "1m": "1 minuto %s",
+      "xm": "%d minutos %s",
+      "1h": "1 hora %s",
+      "xh": "%d horas %s",
+      "1d": "1 día %s",
+      "xd": "%d días %s",
+      "1w": "1 semana %s",
+      "xw": "%d semanas %s",
+      "1M": "1 mes %s",
+      "xM": "%d meses %s",
+      "1y": "1 año %s",
+      "2y": "2 años %s",
+      "xy": "%d años %s",
+      "max": "mucho tiempo %s"
+    },
+    "av": {
+      "table": "Tabla",
+      "gallery": "Tarjeta",
+      "kanban": "Kanban",
+      "key": "Clave principal",
+      "select": "Selección"
+    }
+  },
+  "fr_FR": {
+    "labels": {
+      "53": "La synchronisation des données n'a pas été activée",
+      "105": "Sans titre",
+      "259": "Les %d derniers jours",
+      "260": "Hier",
+      "261": "Aujourd'hui",
+      "262": "Demain",
+      "263": "Les %d prochains jours",
+      "264": "Le champ [%s] est vide",
+      "265": "Hors de portée"
+    },
+    "time": {
+      "albl": "Précédemment",
+      "blbl": "à partir de maintenant",
+      "now": "l'instant",
+      "1s": "1 1 seconde %s",
+      "xs": "%d secondes %s",
+      "1m": "1 minute %s",
+      "xm": "%d minutes %s",
+      "1h": "1 heure %s",
+      "xh": "%d heures %s",
+      "1d": "1 jour %s",
+      "xd": "%d heures %s",
+      "1w": "1 semaine %s",
+      "xw": "%d semaines %s",
+      "1M": "1 mois %s",
+      "xM": "%d mois %s",
+      "1y": "1 an %s",
+      "2y": "2 ans %s",
+      "xy": "%d ans %s",
+      "max": "un bon moment %s"
+    },
+    "av": {
+      "table": "Tableau",
+      "gallery": "Carte",
+      "kanban": "Kanban",
+      "key": "Clé primaire",
+      "select": "Sélectionner"
+    }
+  },
+  "he_IL": {
+    "labels": {
+      "53": "סנכרון הנתונים לא הופעל",
+      "105": "ללא כותרת",
+      "259": "ה-%d ימים האחרונים",
+      "260": "אתמול",
+      "261": "היום",
+      "262": "מחר",
+      "263": "ה-%d ימים הבאים",
+      "264": "השדה [%s] ריק",
+      "265": "מחוץ לטווח"
+    },
+    "time": {
+      "albl": "לפני",
+      "blbl": "מעכשיו",
+      "now": "עכשיו",
+      "1s": "1 שנייה %s",
+      "xs": "%d שניות %s",
+      "1m": "1 דקה %s",
+      "xm": "%d דקות %s",
+      "1h": "1 שעה %s",
+      "xh": "%d שעות %s",
+      "1d": "1 יום %s",
+      "xd": "%d ימים %s",
+      "1w": "1 שבוע %s",
+      "xw": "%d שבועות %s",
+      "1M": "1 חודש %s",
+      "xM": "%d חודשים %s",
+      "1y": "1 שנה %s",
+      "2y": "2 שנים %s",
+      "xy": "%d שנים %s",
+      "max": "זמן רב %s"
+    },
+    "av": {
+      "table": "טבלה",
+      "gallery": "כרטיס",
+      "kanban": "קאנבן",
+      "key": "מפתח ראשי",
+      "select": "בחר"
+    }
+  },
+  "it_IT": {
+    "labels": {
+      "53": "La sincronizzazione dei dati non è stata abilitata",
+      "105": "Senza titolo",
+      "259": "Ultimi %d giorni",
+      "260": "Ieri",
+      "261": "Oggi",
+      "262": "Domani",
+      "263": "Prossimi %d giorni",
+      "264": "Il campo [%s] è vuoto",
+      "265": "Fuori intervallo"
+    },
+    "time": {
+      "albl": "fa",
+      "blbl": "da adesso",
+      "now": "adesso",
+      "1s": "1 secondo %s",
+      "xs": "%d secondi %s",
+      "1m": "1 minuto %s",
+      "xm": "%d minuti %s",
+      "1h": "1 ora %s",
+      "xh": "%d ore %s",
+      "1d": "1 giorno %s",
+      "xd": "%d giorni %s",
+      "1w": "1 settimana %s",
+      "xw": "%d settimane %s",
+      "1M": "1 mese %s",
+      "xM": "%d mesi %s",
+      "1y": "1 anno %s",
+      "2y": "2 anni %s",
+      "xy": "%d anni %s",
+      "max": "molto tempo %s"
+    },
+    "av": {
+      "table": "Tabella",
+      "gallery": "Scheda",
+      "kanban": "Kanban",
+      "key": "Chiave primaria",
+      "select": "Seleziona"
+    }
+  },
+  "ja_JP": {
+    "labels": {
+      "53": "データ同期が有効になっていません",
+      "105": "タイトルなし",
+      "259": "過去 %d 日間",
+      "260": "昨日",
+      "261": "今日",
+      "262": "明日",
+      "263": "次の %d 日間",
+      "264": "フィールド [%s] が空です",
+      "265": "範囲外"
+    },
+    "time": {
+      "albl": "前",
+      "blbl": "これから",
+      "now": "今",
+      "1s": "1 秒%s",
+      "xs": "%d 秒%s",
+      "1m": "1 分%s",
+      "xm": "%d 分%s",
+      "1h": "1 時間%s",
+      "xh": "%d 時間%s",
+      "1d": "1 日%s",
+      "xd": "%d 日%s",
+      "1w": "1 週間%s",
+      "xw": "%d 週間%s",
+      "1M": "1 ヶ月%s",
+      "xM": "%d ヶ月%s",
+      "1y": "1 年%s",
+      "2y": "2 年%s",
+      "xy": "%d 年%s",
+      "max": "しばらく%s"
+    },
+    "av": {
+      "table": "テーブル",
+      "gallery": "カード",
+      "kanban": "カンバン",
+      "key": "プライマリキー",
+      "select": "選択"
+    }
+  },
+  "pl_PL": {
+    "labels": {
+      "53": "Synchronizacja danych nie została włączona",
+      "105": "Bez tytułu",
+      "259": "Ostatnie %d dni",
+      "260": "Wczoraj",
+      "261": "Dzisiaj",
+      "262": "Jutro",
+      "263": "Następne %d dni",
+      "264": "Pole [%s] jest puste",
+      "265": "Poza zakresem"
+    },
+    "time": {
+      "albl": "temu",
+      "blbl": "od teraz",
+      "now": "teraz",
+      "1s": "1 sekunda %s",
+      "xs": "%d sekund %s",
+      "1m": "1 minuta %s",
+      "xm": "%d minut %s",
+      "1h": "1 godzina %s",
+      "xh": "%d godzin %s",
+      "1d": "1 dzień %s",
+      "xd": "%d dni %s",
+      "1w": "1 tydzień %s",
+      "xw": "%d tygodni %s",
+      "1M": "1 miesiąc %s",
+      "xM": "%d miesięcy %s",
+      "1y": "1 rok %s",
+      "2y": "2 lata %s",
+      "xy": "%d lat %s",
+      "max": "długo %s"
+    },
+    "av": {
+      "table": "Tabela",
+      "gallery": "Karta",
+      "kanban": "Kanban",
+      "key": "Klucz główny",
+      "select": "Wybierz"
+    }
+  },
+  "pt_BR": {
+    "labels": {
+      "53": "A sincronização de dados não foi ativada",
+      "105": "Sem título",
+      "259": "Últimos %d dias",
+      "260": "Ontem",
+      "261": "Hoje",
+      "262": "Amanhã",
+      "263": "Próximos %d dias",
+      "264": "O campo [%s] está vazio",
+      "265": "Fora do intervalo"
+    },
+    "time": {
+      "albl": "atrás",
+      "blbl": "a partir de agora",
+      "now": "agora",
+      "1s": "1 segundo %s",
+      "xs": "%d segundos %s",
+      "1m": "1 minuto %s",
+      "xm": "%d minutos %s",
+      "1h": "1 hora %s",
+      "xh": "%d horas %s",
+      "1d": "1 dia %s",
+      "xd": "%d dias %s",
+      "1w": "1 semana %s",
+      "xw": "%d semanas %s",
+      "1M": "1 mês %s",
+      "xM": "%d meses %s",
+      "1y": "1 ano %s",
+      "2y": "2 anos %s",
+      "xy": "%d anos %s",
+      "max": "há muito tempo %s"
+    },
+    "av": {
+      "table": "Tabela",
+      "gallery": "Cartão",
+      "kanban": "Kanban",
+      "key": "Chave Primária",
+      "select": "Selecionar"
+    }
+  },
+  "ru_RU": {
+    "labels": {
+      "53": "Синхронизация данных не была включена",
+      "105": "Без названия",
+      "259": "Прошедшие %d дней",
+      "260": "Вчера",
+      "261": "Сегодня",
+      "262": "Завтра",
+      "263": "Следующие %d дней",
+      "264": "Поле [%s] пусто",
+      "265": "Вне диапазона"
+    },
+    "time": {
+      "albl": "назад",
+      "blbl": "сейчас",
+      "now": "сейчас",
+      "1s": "1 секунда %s",
+      "xs": "%d секунд %s",
+      "1m": "1 минута %s",
+      "xm": "%d минут %s",
+      "1h": "1 час %s",
+      "xh": "%d часов %s",
+      "1d": "1 день %s",
+      "xd": "%d дней %s",
+      "1w": "1 неделя %s",
+      "xw": "%d недель %s",
+      "1M": "1 месяц %s",
+      "xM": "%d месяцев %s",
+      "1y": "1 год %s",
+      "2y": "2 года %s",
+      "xy": "%d лет %s",
+      "max": "долгое время %s"
+    },
+    "av": {
+      "table": "Таблица",
+      "gallery": "Карточка",
+      "kanban": "Канбан",
+      "key": "Первичный ключ",
+      "select": "Выбрать"
+    }
+  },
+  "zh_CHT": {
+    "labels": {
+      "53": "資料同步尚未啟用",
+      "105": "未命名",
+      "259": "過去 %d 天",
+      "260": "昨天",
+      "261": "今天",
+      "262": "明天",
+      "263": "未來 %d 天",
+      "264": "欄位 [%s] 為空",
+      "265": "不在範圍內"
+    },
+    "time": {
+      "albl": "前",
+      "blbl": "距現在",
+      "now": "剛剛",
+      "1s": "1 秒%s",
+      "xs": "%d 秒%s",
+      "1m": "1 分鐘%s",
+      "xm": "%d 分鐘%s",
+      "1h": "1 小時%s",
+      "xh": "%d 小時%s",
+      "1d": "1 天%s",
+      "xd": "%d 天%s",
+      "1w": "1 個星期%s",
+      "xw": "%d 個星期%s",
+      "1M": "1 個月%s",
+      "xM": "%d 個月%s",
+      "1y": "1 年%s",
+      "2y": "2 年%s",
+      "xy": "%d 年%s",
+      "max": "很久%s"
+    },
+    "av": {
+      "table": "表格",
+      "gallery": "卡片",
+      "kanban": "看板",
+      "key": "主鍵",
+      "select": "單選"
+    }
+  },
+  "zh_CN": {
+    "labels": {
+      "53": "数据同步尚未启用",
+      "105": "未命名",
+      "259": "过去 %d 天",
+      "260": "昨天",
+      "261": "今天",
+      "262": "明天",
+      "263": "未来 %d 天",
+      "264": "字段 [%s] 为空",
+      "265": "不在范围内"
+    },
+    "time": {
+      "albl": "前",
+      "blbl": "距现在",
+      "now": "刚刚",
+      "1s": "1 秒%s",
+      "xs": "%d 秒%s",
+      "1m": "1 分钟%s",
+      "xm": "%d 分钟%s",
+      "1h": "1 小时%s",
+      "xh": "%d 小时%s",
+      "1d": "1 天%s",
+      "xd": "%d 天%s",
+      "1w": "1 个星期%s",
+      "xw": "%d 个星期%s",
+      "1M": "1 个月%s",
+      "xM": "%d 个月%s",
+      "1y": "1 年%s",
+      "2y": "2 年%s",
+      "xy": "%d 年%s",
+      "max": "很久%s"
+    },
+    "av": {
+      "table": "表格",
+      "gallery": "卡片",
+      "kanban": "看板",
+      "key": "主键",
+      "select": "单选"
+    }
+  }
+}

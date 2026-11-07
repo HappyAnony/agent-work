@@ -4,6 +4,7 @@ import { Button, Input, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WikiPage, WikiPageChange } from '../types.ts'
 import { remoteReason } from './remote-reason.ts'
+import { PageTypeIcon, pageTypeLabels } from './page-type.tsx'
 import css from './wiki.module.css'
 
 type Props = PropsLocale<'wikiman'> & {
@@ -107,7 +108,9 @@ export function PageMaintenance({ page, load, change, onChanged, onClose, t }: P
     {!page && trashed?.map((item) => {
       const parentDeleted = trashed.some(parent => parent.pageId === item.parentId)
       return <div className={css.maintenanceField} key={item.pageId}>
-        <span>{item.name}</span>
+        <span className={css.pageLabel} title={t(pageTypeLabels[item.type])}>
+          <PageTypeIcon type={item.type} /><span>{item.name}</span>
+        </span>
         <Button size="sm" disabled={busy || parentDeleted} title={parentDeleted ? t('restoreParentFirst') : undefined}
           onClick={() => { void submit({ pageId: item.pageId, hash: item.hash, kind: 'restore' }) }}>{t('restorePage')}</Button>
       </div>

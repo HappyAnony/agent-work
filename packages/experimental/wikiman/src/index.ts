@@ -19,6 +19,8 @@ import { Wiki } from './wiki.ts'
 export interface Config extends KernelConfig, ReplicaConfig {
   /** Select the original SiYuan workspace or the portable WikiMan source and application. */
   readonly runtime: WikiRuntime
+  /** Historical native store IDs belonging to this imported library; citations resolve against the current store. */
+  readonly legacyCitationStoreIds: string[]
   /** Time budget for one legacy import or portable sync operation in milliseconds. */
   readonly sourceOperationTimeoutMs: number
   /** Absolute directory recorded when a Session starts in this workspace. */
@@ -62,6 +64,7 @@ export default class WikiMan extends TypertRemoteService {
 
   static Config: z<Config> = z.object({
     runtime: z.union(['portable', 'siyuan'] as const).default('portable'),
+    legacyCitationStoreIds: z.array(z.string().pattern(/^[a-f0-9]{64}$/u)).default([]),
     kernelPath: z.string().required(),
     appDir: z.string().required(),
     sourceRoot: z.string().required(),
@@ -80,6 +83,8 @@ export default class WikiMan extends TypertRemoteService {
   })
 
   private readonly lifetime = new AbortController()
+  private readonly viewPeers = new Map<string, () => void>()
+  private readonly closingViews = new Set<Promise<void>>()
   private readonly validation: NativeValidation
   private replica?: PortableReplica
   private source: LiveSource | undefined
@@ -94,6 +99,9 @@ export default class WikiMan extends TypertRemoteService {
     ctx.effect(() => async () => {
       this.lifetime.abort()
       await this.sourceOperation?.catch((_error: unknown) => { /* The caller receives the operation error. */ })
+      for (const detach of this.viewPeers.values()) detach()
+      this.viewPeers.clear()
+      await Promise.allSettled(this.closingViews)
       await this.siyuan?.dispose()
       await this.stopSource()
     }, 'wikiman: stop kernel')
@@ -133,7 +141,7 @@ export default class WikiMan extends TypertRemoteService {
       await kernel.dispose()
       throw error
     }
-    return { root, kernel, wiki: new Wiki(kernel, this.config.pageSize) }
+    return { root, kernel, wiki: new Wiki(kernel, this.config.pageSize, this.config.maxSourceFiles, this.config.legacyCitationStoreIds) }
   }
 
   private async stopSource(): Promise<void> {
@@ -256,25 +264,25 @@ export default class WikiMan extends TypertRemoteService {
   }
 
   /**
-   * Issue a scoped view capability for an existing document.
+   * Initialize an empty single-document body and issue a scoped editor capability.
    * @param document - selected document or historical reference.
    * @param signal - remote cancellation.
    * @returns the editor capability and current document version.
    */
   @Remote
   async openEditor(document: WikiDocument, signal: AbortSignal): Promise<WikiEditor> {
-    return await this.owner(() => this.portable.open(document, signal))
+    return await this.owner(async () => this.bindPortableView(await this.portable.open(document, signal)))
   }
 
   /**
-   * Open a Wiki page in the original portable workbench.
+   * Open a Wiki workspace or initialize and open its single-document entry.
    * @param pageId - selected page.
    * @param signal - remote cancellation.
    * @returns the scoped editor view.
    */
   @Remote
   async openPage(pageId: string, signal: AbortSignal): Promise<WikiPageEditor> {
-    return await this.owner(() => this.portable.openPage(pageId, signal))
+    return await this.owner(async () => this.bindPortableView(await this.portable.openPage(pageId, signal)))
   }
 
   /**
@@ -286,7 +294,8 @@ export default class WikiMan extends TypertRemoteService {
    */
   @Remote
   async resolveLink(pageId: string, blockId: string, signal: AbortSignal): Promise<WikiLink | null> {
-    return await this.owner(() => this.portable.resolveLink(pageId, blockId, signal))
+    return await this.owner(() => this.portable.resolveLink(pageId, blockId,
+      AbortSignal.any([signal, this.lifetime.signal, AbortSignal.timeout(this.config.sourceOperationTimeoutMs)])))
   }
 
   /**
@@ -296,7 +305,11 @@ export default class WikiMan extends TypertRemoteService {
    */
   @Remote
   async closeEditor(viewId: string): Promise<void> {
-    await this.owner(() => this.wiki.close(viewId))
+    await this.owner(async () => {
+      await this.wiki.close(viewId)
+      this.viewPeers.get(viewId)?.()
+      this.viewPeers.delete(viewId)
+    })
   }
 
   /**
@@ -346,6 +359,28 @@ export default class WikiMan extends TypertRemoteService {
         }
       }
     }), 'maintenance')
+  }
+
+  private async bindPortableView<T extends WikiPageEditor>(editor: T): Promise<T> {
+    const peer = this.ctx.invocation?.peer
+    const wiki = this.portable
+    if (!peer || peer.signal.aborted) {
+      await wiki.close(editor.view.viewId)
+      throw new WikiError('editor_peer_closed')
+    }
+    const id = editor.view.viewId
+    const detach = () => { peer.signal.removeEventListener('abort', close) }
+    const close = () => {
+      detach()
+      this.viewPeers.delete(id)
+      const pending = wiki.close(id).catch((error: unknown) => {
+        this.ctx.logger.warn('WikiMan could not revoke a disconnected editor; restart the Wiki plugin before source maintenance: %s', String(error))
+      }).finally(() => { this.closingViews.delete(pending) })
+      this.closingViews.add(pending)
+    }
+    this.viewPeers.set(id, detach)
+    peer.signal.addEventListener('abort', close, { once: true })
+    return editor
   }
 
   private async owner<T>(operation: () => T | Promise<T>, kind: 'live' | 'maintenance' = 'live'): Promise<T> {

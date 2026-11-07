@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:wiki:page:1",
+  "title": "Wiki Page v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "pageId", "name", "parentId", "rank", "type", "revision", "createdAt", "updatedAt", "deletedAt", "entryDocument", "ext"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "pageId": {"type": "string", "pattern": "^[0-9]{19}$"},
+    "name": {"type": "string", "pattern": "\\S"},
+    "parentId": {"type": ["string", "null"], "pattern": "^[0-9]{19}$"},
+    "rank": {"type": "string", "pattern": "\\S"},
+    "type": {"enum": ["wiki", "docx", "table"]},
+    "revision": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+    "createdAt": {"type": "string", "format": "date-time", "pattern": "(Z|\\+00:00)$"},
+    "updatedAt": {"type": "string", "format": "date-time", "pattern": "(Z|\\+00:00)$"},
+    "deletedAt": {"type": ["string", "null"], "format": "date-time", "pattern": "(Z|\\+00:00)$"},
+    "entryDocument": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["boxId", "docId"],
+      "properties": {
+        "boxId": {"type": "string", "pattern": "^[0-9]{14}-[a-z0-9]{7}$"},
+        "docId": {"type": "string", "pattern": "^[0-9]{14}-[a-z0-9]{7}$"}
+      }
+    },
+    "ext": {"type": "object", "additionalProperties": true}
+  }
+}

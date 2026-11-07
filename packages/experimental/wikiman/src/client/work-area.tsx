@@ -6,6 +6,7 @@ import type { WikiDocument, WikiLink, WikiPage, WikiPageEditor, WikiRuntime, Wik
 import { mountEditor, type EditorChannel } from './editor-channel.ts'
 import { mountSiyuan } from './siyuan-channel.ts'
 import css from './wiki.module.css'
+import type { PortableEditor } from './portable-workbench.ts'
 
 /** A top-level page selection, document-tree click or recorded citation. */
 export type WikiTarget =
@@ -16,11 +17,14 @@ export type WikiTarget =
 export interface WorkbenchSnapshot {
   readonly target: WikiTarget | null
   readonly anchor: HTMLDivElement | null
+  readonly changed: boolean
 }
 
 /** Browser operations supplied by the workbench owner. */
 export interface EditorActions {
   readonly runtime: WikiRuntime
+  readonly portable: PortableEditor
+  readonly openPortable: (target: WikiTarget | null) => Promise<void>
   readonly getSnapshot: () => WorkbenchSnapshot
   readonly subscribe: (listener: () => void) => () => void
   readonly select: (target: WikiTarget | null) => void
@@ -38,6 +42,37 @@ type Position = Pick<DOMRect, 'left' | 'top' | 'width' | 'height'>
  * @returns the anchored native editor when a page is open.
  */
 export function WikiWorkArea(props: Props) {
+  return props.runtime === 'portable' ? <PortableWorkArea {...props} /> : <SiyuanWorkArea {...props} />
+}
+
+function PortableWorkArea({ portable, openPortable, subscribe, getSnapshot, t }: Props) {
+  const { target, anchor, changed } = useSyncExternalStore(subscribe, getSnapshot)
+  const state = useSyncExternalStore(portable.subscribe, portable.getSnapshot)
+  const [failed, setFailed] = useState(false)
+  useLayoutEffect(() => {
+    if (anchor) portable.attach(anchor)
+    else portable.park()
+    return () => { portable.park() }
+  }, [anchor, portable])
+  useEffect(() => {
+    let current = true
+    setFailed(false)
+    void openPortable(target).catch((_error: unknown) => { if (current) setFailed(true) })
+    return () => { current = false }
+  }, [openPortable, target])
+  useEffect(() => {
+    if (!state.dirty) return
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault() }
+    window.addEventListener('beforeunload', warn)
+    return () => { window.removeEventListener('beforeunload', warn) }
+  }, [state.dirty])
+  return anchor && (failed || state.error || changed) ? <div className={css.workbenchError} role="alert">
+    <span>{failed ? t('openError') : state.error ? t('saveError') : t('versionChanged')}</span>
+    {(failed || state.error) && <Button size="sm" onClick={() => { setFailed(false); void openPortable(target).catch(() => { setFailed(true) }) }}>{t('retryEditor')}</Button>}
+  </div> : null
+}
+
+function SiyuanWorkArea(props: Props) {
   const { target, anchor } = useSyncExternalStore(props.subscribe, props.getSnapshot)
   const [active, setActive] = useState(target)
   const [position, setPosition] = useState<Position | null>(null)

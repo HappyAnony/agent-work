@@ -4,6 +4,7 @@ import { Button, Input, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import type { WikiCreatePage, WikiPage } from '../types.ts'
+import { PageTypeIcon } from './page-type.tsx'
 import css from './wiki.module.css'
 
 type Props = PropsLocale<'wikiman'> & {
@@ -63,9 +64,9 @@ export function NewPageDialog({ parent, create, onCreated, onClose, t }: Props) 
       </label>
       <fieldset disabled={busy}>
         <legend>{t('pageType')}</legend>
-        <label><input type="radio" checked={type === 'docx'} onChange={() => { setType('docx') }} />{t('docxPage')}</label>
-        <label><input type="radio" checked={type === 'wiki'} onChange={() => { setType('wiki') }} />{t('wikiPage')}</label>
-        <label><input type="radio" checked={type === 'table'} onChange={() => { setType('table') }} />{t('tablePage')}</label>
+        <label><input type="radio" checked={type === 'docx'} onChange={() => { setType('docx') }} /><PageTypeIcon type="docx" />{t('docxPage')}</label>
+        <label><input type="radio" checked={type === 'wiki'} onChange={() => { setType('wiki') }} /><PageTypeIcon type="wiki" />{t('wikiPage')}</label>
+        <label><input type="radio" checked={type === 'table'} onChange={() => { setType('table') }} /><PageTypeIcon type="table" />{t('tablePage')}</label>
       </fieldset>
       {parent && <label><input type="checkbox" checked={child} disabled={busy} onChange={(event) => { setChild(event.target.checked) }} />
         {t('childPage')}</label>}

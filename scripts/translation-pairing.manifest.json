@@ -8,6 +8,9 @@
     "docs/cordis-api/inherited.md",
     "docs/i18n/style-samples.md",
     "docs/i18n/terminology.md",
-    "docs/i18n/translation-prompt.md"
+    "docs/i18n/translation-prompt.md",
+    "native/wikiman/fixtures/",
+    "native/wikiman/wiki-app/",
+    "native/wikiman/wiki-kernel/"
   ]
 }

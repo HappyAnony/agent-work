@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:wiki:store:1",
+  "title": "Wiki Store v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "storeId", "name", "documentFormat", "layoutVersion"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "storeId": {"type": "string", "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"},
+    "name": {"type": "string", "pattern": "\\S"},
+    "documentFormat": {"const": "docj"},
+    "layoutVersion": {"const": 1}
+  }
+}

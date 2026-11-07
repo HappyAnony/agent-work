@@ -4,6 +4,8 @@
 
 与 DeepSeek Harness 一同维护的原生源码和公开包。[`system/` workspace](system/README.zh.md) 负责 Landlock 启动器、POSIX flock 绑定、平台包和[发布流程](system/docs/release.md)。
 
+[`wikiman/`](wikiman/README.zh.md) 负责可选 DSH WikiMan 插件使用的改造版 Go 内核和仅用于构建的原生 Wiki app。独立构建、测试和许可证见该子树文档。
+
 ## Workspace 与发布边界
 
 `system/` 及其包属于仓库根 pnpm workspace，并共用根锁文件。开发和 CI 中的 harness 消费方直接使用当前 workspace 的入口包，因此启动器约定变更与消费方更新可以在同一个改动中落地并一起测试。

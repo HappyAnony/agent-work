@@ -24,6 +24,9 @@ const pagesSchema = z.object({
 const itemSchema = z.object({ boxId: nativeId, docId: nativeId, title: z.string().optional(), hash: z.string() })
 const itemsSchema = z.object({ items: z.array(itemSchema).default([]), nextCursor: z.string().optional() })
 const textSchema = z.object({ text: z.string().default(''), hash: z.string() })
+const documentStructureSchema = z.object({ hash: z.string(), ast: z.object({
+  Type: z.literal('NodeDocument'), Children: z.array(z.unknown()).optional(),
+}) })
 const viewSchema = z.object({
   storeId: z.string(), pageId, sessionId: z.string(), viewId: z.string(), ticket: z.string(),
   mode: z.enum(['wikiDesktop', 'docxSingle']),
@@ -55,7 +58,12 @@ export class Wiki {
   private readonly editors = new Map<string, string>()
   private openingViews = 0
 
-  constructor(private readonly kernel: WikiKernel, private readonly pageSize: number) {}
+  constructor(
+    private readonly kernel: WikiKernel,
+    private readonly pageSize: number,
+    private readonly maxReferenceDocuments: number,
+    private readonly legacyStoreIds: readonly string[] = [],
+  ) {}
 
   /**
    * List active pages using the portable tree cursor.
@@ -117,7 +125,7 @@ export class Wiki {
   }
 
   /**
-   * Open a scoped editor lease for an existing native document.
+   * Open a scoped editor lease, initializing one paragraph if a single document has no body.
    * @param document - document row or historical reference.
    * @param signal - caller cancellation.
    * @returns capability and current committed document coordinates.
@@ -125,17 +133,17 @@ export class Wiki {
   async open(document: WikiDocument, signal: AbortSignal): Promise<WikiEditor> {
     const { pageId: id } = documentKey.parse(document)
     const { storeId } = this.kernel.identity()
-    if (document.storeId !== storeId) throw new WikiError('source_changed')
+    if (document.storeId !== storeId && !this.legacyStoreIds.includes(document.storeId)) throw new WikiError('source_changed')
     const { page } = await this.page(id, signal)
     if (page.type === 'docx' && (page.entryDocument?.boxId !== document.boxId || page.entryDocument.docId !== document.docId)) {
       throw new WikiError('document_not_in_page')
     }
-    const { hash } = await this.text(document, signal)
-    return { ...await this.lease(id, page.type, signal), document: { ...document, hash } }
+    const hash = page.type === 'docx' ? await this.prepareSingleDocument(document, signal) : (await this.text(document, signal)).hash
+    return { ...await this.lease(id, page.type, signal), document: { ...document, hash, storeId } }
   }
 
   /**
-   * Open the native file tree of a Wiki page or the entry document of a Docx page.
+   * Open a Wiki file tree or a single document, initializing its body when empty.
    * @param id - selected WikiMan page.
    * @param signal - caller cancellation.
    * @returns the scoped native workspace view.
@@ -143,15 +151,16 @@ export class Wiki {
   async openPage(id: string, signal: AbortSignal): Promise<WikiPageEditor> {
     const { page, entryHash } = await this.page(id, signal)
     const { storeId } = this.kernel.identity()
-    const document = page.type === 'docx' && page.entryDocument && entryHash
+    let document = page.type === 'docx' && page.entryDocument && entryHash
       ? { ...page.entryDocument, pageId: id, title: page.name, hash: entryHash, storeId }
       : null
     if (page.type === 'docx' && !document) throw new WikiError('document_not_in_page')
+    if (document) document = { ...document, hash: await this.prepareSingleDocument(document, signal) }
     return { ...await this.lease(id, page.type, signal), document }
   }
 
   /**
-   * Resolve native document-tree navigation and block links within the selected Wiki page.
+   * Resolve native document-tree navigation and block links across active Wiki pages.
    * @param id - WikiMan page which issued the navigation.
    * @param block - native document or block identifier.
    * @param signal - caller cancellation.
@@ -159,20 +168,33 @@ export class Wiki {
    */
   async resolveLink(id: string, block: string, signal: AbortSignal): Promise<WikiLink | null> {
     nativeId.parse(block)
-    const documents = await this.documents(id, '', signal)
-    const document = documents.items.find(item => item.docId === block)
-    if (document) return { document, blockId: block }
-    for (const candidate of documents.items) {
-      try {
-        const { hash } = await this.kernel.call('content', {
-          ...documentKey.parse(candidate), action: 'block.get', blockId: block, format: 'text',
-        }, textSchema, signal)
-        return { document: { ...candidate, hash }, blockId: block }
-      } catch (error) {
-        if (!(error instanceof WikiError) || error.code !== 'not_found') throw error
-      }
+    const pages = (await this.maintenancePages(signal)).filter(page => page.type !== 'table' && page.deletedAt === null)
+    if (!pages.some(page => page.pageId === id)) throw new WikiError('page_unavailable')
+    let visited = 0
+    let found: WikiLink | null = null
+    for (const page of pages) {
+      let cursor = ''
+      const cursors = new Set<string>()
+      do {
+        const batch = await this.documents(page.pageId, cursor, signal)
+        for (const candidate of batch.items) {
+          if (++visited > this.maxReferenceDocuments) throw new WikiError('reference_lookup_limit')
+          try {
+            const { hash } = await this.kernel.call('content', {
+              ...documentKey.parse(candidate), action: 'block.get', blockId: block, format: 'text',
+            }, textSchema, signal)
+            if (found) throw new WikiError('ambiguous_block_reference')
+            found = { document: { ...candidate, hash }, blockId: block, mode: page.type === 'docx' ? 'docxSingle' : 'wikiDesktop' }
+          } catch (error) {
+            if (!(error instanceof WikiError) || error.code !== 'not_found') throw error
+          }
+        }
+        cursor = batch.nextCursor
+        if (cursor && cursors.has(cursor)) throw new WikiError('invalid_kernel_response')
+        cursors.add(cursor)
+      } while (cursor)
     }
-    return null
+    return found
   }
 
   /**
@@ -202,7 +224,11 @@ export class Wiki {
       const { boxId, docId } = entryDocument
       await this.kernel.call('content', {
         action: 'document.put', operationId, pageId: id, boxId, docId, notebookName: name, pageUpdate: update,
-        ast: { ID: docId, Type: 'NodeDocument', Properties: { id: docId, title: name }, Children: [] },
+        ast: {
+          ID: docId, Type: 'NodeDocument', Spec: '1', Properties: { id: docId, title: name, type: 'doc' },
+          Children: [{ ID: `${nativePrefix}-${hex.slice(14, 21)}`, Type: 'NodeParagraph',
+            Properties: { id: `${nativePrefix}-${hex.slice(14, 21)}`, updated: nativePrefix } }],
+        },
       }, committedSchema, signal)
     } else {
       await this.kernel.call('pages', { action: 'apply', operationId, updates: [update] }, committedSchema, signal)
@@ -295,6 +321,22 @@ export class Wiki {
       visited.add(cursor)
     } while (cursor)
     return { views, digest }
+  }
+
+  // Opening an editor may initialize an empty document. Knowledge reads remain read-only.
+  private async prepareSingleDocument(key: WikiDocumentKey, signal: AbortSignal): Promise<string> {
+    const result = await this.kernel.call('content', {
+      ...documentKey.parse(key), action: 'document.get', format: 'ast',
+    }, documentStructureSchema, signal)
+    if (result.ast.Children && result.ast.Children.length > 0) return result.hash
+    const operationId = randomUUID()
+    const prefix = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)
+    const paragraphId = `${prefix}-${createHash('sha256').update(operationId).digest('hex').slice(0, 7)}`
+    await this.kernel.call('content', {
+      ...documentKey.parse(key), action: 'block.create', operationId, expectedHash: result.hash, parentId: key.docId, blockId: paragraphId,
+      ast: { ID: paragraphId, Type: 'NodeParagraph', Properties: { id: paragraphId, updated: prefix } },
+    }, committedSchema, signal)
+    return (await this.text(key, signal)).hash
   }
 
   private async page(id: string, signal: AbortSignal) {

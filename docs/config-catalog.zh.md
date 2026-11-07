@@ -4830,6 +4830,8 @@ export interface Config {
 export interface Config extends KernelConfig, ReplicaConfig {
   /** Select the original SiYuan workspace or the portable WikiMan source and application. */
   readonly runtime: WikiRuntime
+  /** Historical native store IDs belonging to this imported library; citations resolve against the current store. */
+  readonly legacyCitationStoreIds: string[]
   /** Time budget for one legacy import or portable sync operation in milliseconds. */
   readonly sourceOperationTimeoutMs: number
   /** Absolute directory recorded when a Session starts in this workspace. */

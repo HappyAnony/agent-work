@@ -52,6 +52,121 @@ function answer(): ReplayEntry {
 }
 
 describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record')('Web WikiMan with real portable resources', () => {
+  it('opens an empty single document and switches Wiki and document workspaces on one kernel', async () => {
+    const root = await realpath(await mkdtemp(join(tmpdir(), 'dsh-wikiman-single-switch-')))
+    const owned: { browser?: Browser; scaffold?: WebScaffold } = {}
+    onTestFinished(async () => {
+      try { await owned.browser?.close() } finally {
+        try { await owned.scaffold?.close() } finally { await rm(root, { recursive: true, force: true }) }
+      }
+    })
+    const source = join(root, 'wiki')
+    const shared = join(root, 'shared')
+    await Promise.all([cp(portableFixture, source, { recursive: true }), mkdir(shared)])
+    const emptyFile = join(source, 'pages', document.pageId, 'data', document.boxId, document.docId + '.docj')
+    await writeFile(emptyFile, `{"ID":"${document.docId}","Type":"NodeDocument","Properties":{"id":"${document.docId}","title":"单文档示例"},"Children":[],"Opaque":900719925474099312345}`)
+    const wikiPages = [
+      { pageId: firstWikiId, prefix: '202610190910', suffix: '1', text: 'Workspace A content' },
+      { pageId: secondWikiId, prefix: '202610190920', suffix: '2', text: 'Workspace B content' },
+    ]
+    for (const wiki of wikiPages) {
+      const boxId = `${wiki.prefix}00-wikbox${wiki.suffix}`
+      const docId = `${wiki.prefix}01-wikdoc${wiki.suffix}`
+      const blockId = `${wiki.prefix}02-wikpar${wiki.suffix}`
+      const notebook = join(source, 'pages', wiki.pageId, 'data', boxId)
+      await mkdir(join(notebook, '.siyuan'), { recursive: true })
+      await writeFile(join(notebook, '.siyuan/conf.json'), JSON.stringify({ name: wiki.text, closed: false, sortMode: 15 }))
+      await writeFile(join(notebook, docId + '.docj'), JSON.stringify({
+        ID: docId, Type: 'NodeDocument', Spec: '1', Properties: { id: docId, title: 'Wiki document ' + wiki.suffix, type: 'doc' },
+        Children: [{ ID: blockId, Type: 'NodeParagraph', Properties: { id: blockId },
+          Children: [{ Type: 'NodeText', Data: wiki.text }] }],
+      }))
+    }
+    const scaffold = await portablePeer(source, requireRuntimeResources(), shared)
+    owned.scaffold = scaffold
+    const browser = await chromium.launch()
+    owned.browser = browser
+    const page = await newEnglishPage(browser)
+    const failures: string[] = []
+    page.on('pageerror', (error) => { failures.push(error.message) })
+    page.on('console', (message) => { if (message.type() === 'error') failures.push(message.text()) })
+    page.on('response', (response) => {
+      if (!response.url().includes('/v1/')) return
+      void response.json().then((value: unknown) => {
+        const parsed = z.object({ error: z.object({ type: z.string() }) }).safeParse(value)
+        if (parsed.success) failures.push(new URL(response.url()).pathname + ':' + parsed.data.error.type)
+      }).catch((_error: unknown) => { /* Diagnostics may finish after their browser context closes. */ })
+    })
+    await page.goto(scaffold.authenticatedUrl)
+    await page.getByRole('button', { name: 'Knowledge base', exact: true }).click()
+    expect(await page.getByRole('button', { name: '单文档示例', exact: true }).getAttribute('title')).toBe('单文档示例 · doc')
+    expect(await page.getByRole('button', { name: '空表格节点', exact: true }).getAttribute('title')).toBe('空表格节点 · table')
+    expect(await page.locator('nav').getByRole('button', { name: '技术知识', exact: true }).first().getAttribute('title')).toBe('技术知识 · wiki')
+    const frame = page.frameLocator('iframe[title="WikiMan editor"]:visible')
+    await frame.locator('body[data-editor-ready="true"]').waitFor()
+    const initialOrigin = await frame.locator('body').evaluate(() => location.origin)
+    const paragraph = frame.locator('.protyle-wysiwyg [data-type="NodeParagraph"] [contenteditable="true"]').first()
+    await page.getByRole('button', { name: '单文档示例', exact: true }).click()
+    try {
+      await frame.locator('#singleWorkspace').waitFor()
+    } catch (error) {
+      await page.screenshot({ path: join(REPO_ROOT, '.artifacts/wikiman-empty-before.png') })
+      throw new Error('Existing empty document did not open: ' + failures.join(', ') + '; ' + (await page.getByRole('alert').allTextContents()).join(', '), { cause: error })
+    }
+    await frame.locator('body[data-editor-ready="true"]').waitFor()
+    await paragraph.waitFor()
+    await paragraph.click()
+    await page.keyboard.type('Existing empty document text')
+    await expect.poll(() => paragraph.textContent()).toContain('Existing empty document text')
+    await page.locator('nav').getByRole('button', { name: '技术知识', exact: true }).first().click()
+    await frame.locator('.protyle-wysiwyg').getByText('Workspace A content', { exact: true }).waitFor()
+    expect(await readFile(emptyFile, 'utf8')).toContain('900719925474099312345')
+    expect(await readFile(emptyFile, 'utf8')).toContain('Existing empty document text')
+    await wikiPageAction(page, 'New page')
+    const create = page.getByRole('dialog', { name: 'New page' })
+    await create.getByRole('textbox', { name: 'Page name' }).fill('Fresh single document')
+    expect(await create.getByRole('radio').count()).toBe(3)
+    await create.getByRole('radio', { name: 'wiki', exact: true }).waitFor()
+    await create.getByRole('radio', { name: 'table', exact: true }).waitFor()
+    await create.getByRole('radio', { name: 'doc', exact: true }).check()
+    await create.getByRole('button', { name: 'Create page', exact: true }).click()
+    await create.waitFor({ state: 'hidden' })
+    try {
+      await frame.locator('body[data-editor-ready="true"]').waitFor()
+      await frame.locator('#singleWorkspace .protyle-wysiwyg [data-type="NodeParagraph"] [contenteditable="true"]').first().waitFor()
+    } catch (error) {
+      await page.screenshot({ path: join(REPO_ROOT, '.artifacts/wikiman-single-before.png') })
+      throw new Error('New single document did not become editable: ' + failures.join(', ') + '; ' + (await page.getByRole('alert').allTextContents()).join(', '), { cause: error })
+    }
+    expect(await frame.locator('body').evaluate(() => location.origin)).toBe(initialOrigin)
+    expect(await frame.locator('.portable-desktop, [data-scoped-tabs]').count()).toBe(0)
+    await paragraph.click()
+    await page.keyboard.type('Single workspace saved text')
+    await expect.poll(() => paragraph.textContent()).toContain('Single workspace saved text')
+    for (const id of [firstWikiId, secondWikiId]) {
+      const buttons = page.locator('nav').getByRole('button', { name: '技术知识', exact: true })
+      await buttons.nth(id === firstWikiId ? 0 : 1).click()
+      await frame.locator('.protyle-wysiwyg').getByText(id === firstWikiId ? 'Workspace A content' : 'Workspace B content', { exact: true }).waitFor()
+      expect(await frame.locator('body').evaluate(() => location.origin)).toBe(initialOrigin)
+    }
+    await page.getByRole('button', { name: 'Fresh single document', exact: true }).click()
+    await expect.poll(() => paragraph.textContent()).toContain('Single workspace saved text')
+    expect(await frame.locator('body').evaluate(() => location.origin)).toBe(initialOrigin)
+    await page.getByRole('button', { name: '单文档示例', exact: true }).click()
+    await expect.poll(() => paragraph.textContent()).toContain('Existing empty document text')
+    await page.getByRole('button', { name: 'Fresh single document', exact: true }).click()
+    await expect.poll(() => paragraph.textContent()).toContain('Single workspace saved text')
+    await page.screenshot({ path: join(REPO_ROOT, '.artifacts/wikiman-single-fixed.png') })
+    await wikiPageAction(page, 'Save and close')
+    await expect.poll(() => page.locator('iframe[title="WikiMan editor"]').count()).toBe(0)
+    const pages = await readdir(join(source, 'pages'))
+    const records = await Promise.all(pages.map(async id => z.looseObject({ pageId: z.string(), name: z.string(), entryDocument: z.object({ boxId: z.string(), docId: z.string() }).nullable() }).parse(JSON.parse(await readFile(join(source, 'pages', id, 'page.json'), 'utf8')))))
+    const created = records.find(record => record.name === 'Fresh single document')
+    expect(created?.entryDocument).not.toBeNull()
+    if (!created?.entryDocument) throw new Error('single_document_entry_missing')
+    expect(await readFile(join(source, 'pages', created.pageId, 'data', created.entryDocument.boxId, created.entryDocument.docId + '.docj'), 'utf8')).toContain('Single workspace saved text')
+  })
+
   it('persists a browser edit and opens the committed document from a logged tool result', async () => {
     const root = await realpath(await mkdtemp(join(tmpdir(), 'dsh-wikiman-e2e-')))
     try {
@@ -90,7 +205,7 @@ describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record'
           await page.goto(scaffold.authenticatedUrl)
           await connectFreshWorkspace(page, root)
           await page.getByRole('button', { name: 'Knowledge base', exact: true }).click()
-          await page.getByRole('button', { name: 'New page', exact: true }).click()
+          await wikiPageAction(page, 'New page')
           const creation = page.getByRole('dialog', { name: 'New page' })
           await creation.getByRole('textbox', { name: 'Page name' }).fill('Browser-created Wiki page')
           await creation.getByRole('button', { name: 'Create page' }).click()
@@ -100,7 +215,6 @@ describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record'
           await page.getByRole('button', { name: 'Browser-created Wiki page', exact: true }).waitFor()
           await search.clear()
           await page.getByRole('button', { name: '技术知识', exact: true }).first().click()
-          await page.getByRole('heading', { name: '技术知识', exact: true }).waitFor()
           await page.frameLocator('iframe[title="WikiMan editor"]').locator('body[data-editor-ready="true"]').waitFor()
           await page.getByRole('button', { name: '单文档示例', exact: true }).click()
           const frame = page.frameLocator('iframe[title="WikiMan editor"]')
@@ -124,7 +238,7 @@ describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record'
           await page.getByRole('button', { name: 'Knowledge base', exact: true }).click()
           await iframe.waitFor({ state: 'visible' })
           expect(await iframe.getAttribute('data-wiki-test-frame')).toBe('original')
-          await page.getByRole('button', { name: 'Save and close' }).click()
+          await wikiPageAction(page, 'Save and close')
           await page.locator('iframe[title="WikiMan editor"]').waitFor({ state: 'hidden' })
 
           await newSession.click()
@@ -145,7 +259,7 @@ describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record'
           }
           await citation.click()
           await expect.poll(() => paragraph.textContent()).toContain(marker)
-          await page.getByRole('button', { name: 'Save and close' }).click()
+          await wikiPageAction(page, 'Save and close')
           await page.locator('iframe[title="WikiMan editor"]').waitFor({ state: 'hidden' })
         } finally {
           await browser.close()
@@ -165,18 +279,23 @@ describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record'
   })
 })
 
+async function wikiPageAction(page: Page, name: string) {
+  await page.getByRole('button', { name: 'Page actions', exact: true }).click()
+  await page.getByRole('menuitem', { name, exact: true }).click()
+}
+
 async function loadLibrary(page: Page, scaffold: WebScaffold) {
   await page.goto(scaffold.authenticatedUrl)
   await page.getByRole('button', { name: 'Knowledge base', exact: true }).click()
   const frame = page.frameLocator('iframe[title="WikiMan editor"]')
   await frame.locator('body[data-editor-ready="true"]').waitFor()
-  await page.getByRole('button', { name: 'Save and close' }).click()
+  await wikiPageAction(page, 'Save and close')
   await page.locator('iframe[title="WikiMan editor"]').waitFor({ state: 'hidden' })
 }
 
 async function renamePage(page: Page, oldName: string, newName: string) {
   await page.getByRole('button', { name: oldName, exact: true }).click()
-  await page.getByRole('button', { name: 'Manage page', exact: true }).click()
+  await wikiPageAction(page, 'Manage page')
   const dialog = page.getByRole('dialog', { name: 'Manage page' })
   await dialog.getByRole('textbox', { name: 'Page name' }).fill(newName)
   await dialog.getByRole('button', { name: 'Rename page' }).click()
@@ -197,7 +316,7 @@ async function portablePeer(root: string, resources: string, shared: string): Pr
 }
 
 async function syncFromUI(page: Page, outcome: string) {
-  await page.getByRole('button', { name: 'Library tools', exact: true }).click()
+  await wikiPageAction(page, 'Library tools')
   const dialog = page.getByRole('dialog', { name: 'Library tools' })
   await dialog.getByRole('button', { name: 'Sync now', exact: true }).click()
   const expected = dialog.getByText(outcome, { exact: true })
@@ -245,6 +364,12 @@ describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record'
         cp(fixture, b, { recursive: true, filter: source => !source.includes('/.local') }),
         mkdir(shared), mkdir(imported), legacyFixture(fixture, legacy),
       ])
+      const { DatabaseSync } = await import('node:sqlite')
+      const recycled = new DatabaseSync(join(legacy, 'page.db'))
+      try {
+        recycled.exec('CREATE TABLE dsh_wiki_recycle (page_id TEXT PRIMARY KEY, deleted_at TEXT NOT NULL)')
+        recycled.prepare('INSERT INTO dsh_wiki_recycle VALUES (?, ?)').run(document.pageId, '2026-11-07T00:00:00.000Z')
+      } finally { recycled.close() }
       const originalDb = await readFile(join(legacy, 'page.db'))
       const first = await portablePeer(a, resources, shared)
       scaffolds.add(first)
@@ -257,7 +382,7 @@ describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record'
       await syncFromUI(right, 'Both copies have the same version.')
 
       await left.getByRole('button', { name: '空表格节点', exact: true }).click()
-      await left.getByRole('button', { name: 'Manage page', exact: true }).click()
+      await wikiPageAction(left, 'Manage page')
       const move = left.getByRole('dialog', { name: 'Manage page' })
       await move.getByRole('combobox', { name: 'New parent' }).selectOption(secondWikiId)
       await move.getByRole('textbox', { name: 'Sort rank', exact: true }).fill('0010')
@@ -269,19 +394,19 @@ describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record'
 
       await renamePage(left, '空表格节点', 'Moved table')
       await left.getByRole('button', { name: 'Moved table', exact: true }).click()
-      await left.getByRole('button', { name: 'Manage page', exact: true }).click()
+      await wikiPageAction(left, 'Manage page')
       await move.getByRole('button', { name: 'Move to recycle bin', exact: true }).click()
       await move.getByRole('button', { name: 'Recycle page and descendants', exact: true }).click()
       await move.waitFor({ state: 'hidden' })
       await left.getByRole('button', { name: 'Moved table', exact: true }).waitFor({ state: 'hidden' })
-      await left.getByRole('button', { name: 'Recycle bin', exact: true }).click()
+      await wikiPageAction(left, 'Recycle bin')
       const bin = left.getByRole('dialog', { name: 'Recycle bin' })
       await bin.getByText('Moved table', { exact: true }).waitFor()
       await bin.getByRole('button', { name: 'Restore', exact: true }).click()
       await bin.waitFor({ state: 'hidden' })
       await left.getByRole('button', { name: 'Moved table', exact: true }).waitFor()
 
-      await left.getByRole('button', { name: 'Library tools', exact: true }).click()
+      await wikiPageAction(left, 'Library tools')
       const library = left.getByRole('dialog', { name: 'Library tools' })
       await library.getByRole('button', { name: 'Import legacy library', exact: true }).click()
       await library.getByRole('textbox', { name: 'Legacy library folder' }).fill(legacy)
@@ -307,6 +432,8 @@ describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record'
       const doc = join('pages', document.pageId, 'data', document.boxId, document.docId)
       expect(await readFile(join(output, doc + '.docj'))).toEqual(await readFile(join(legacy, doc + '.sy')))
       expect(await readFile(join(legacy, 'page.db'))).toEqual(originalDb)
+      expect(z.object({ deletedAt: z.string() }).parse(JSON.parse(await readFile(join(output, 'pages', document.pageId, 'page.json'), 'utf8'))))
+        .toMatchObject({ deletedAt: '2026-11-07T00:00:00.000Z' })
       await library.getByRole('button', { name: 'Close', exact: true }).click()
 
       await syncFromUI(left, 'Published the local version.')
@@ -387,6 +514,77 @@ async function siyuanFixture(portable: string, legacy: string) {
     }],
   }))
 }
+
+describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record')('Source-owned WikiMan workbench', () => {
+  it('keeps native tabs and splits, restores their layout and opens the Chinese workbench without account services', async () => {
+    const root = await realpath(await mkdtemp(join(tmpdir(), 'dsh-wiki-source-workbench-')))
+    const owned: { browser?: Browser; scaffold?: WebScaffold } = {}
+    onTestFinished(async () => {
+      try { await owned.browser?.close() } finally {
+        try { await owned.scaffold?.close() } finally { await rm(root, { recursive: true, force: true }) }
+      }
+    })
+    const source = join(root, 'portable')
+    const legacy = join(root, 'legacy')
+    const shared = join(root, 'shared')
+    await Promise.all([cp(portableFixture, source, { recursive: true }), siyuanFixture(portableFixture, legacy), mkdir(shared)])
+    const metadataFile = join(source, 'pages', document.pageId, 'page.json')
+    const metadata = z.looseObject({ type: z.string() }).parse(JSON.parse(await readFile(metadataFile, 'utf8')))
+    await writeFile(metadataFile, JSON.stringify({ ...metadata, type: 'wiki', name: 'Project overview', entryDocument: null }))
+    await rm(join(source, 'pages', document.pageId, 'data'), { recursive: true })
+    await cp(join(legacy, 'pages', document.pageId, 'data'), join(source, 'pages', document.pageId, 'data'), { recursive: true })
+    const scaffold = await portablePeer(source, requireRuntimeResources(), shared)
+    owned.scaffold = scaffold
+    const browser = await chromium.launch()
+    owned.browser = browser
+    const page = await newEnglishPage(browser)
+    await page.goto(scaffold.authenticatedUrl)
+    await page.getByRole('button', { name: 'Knowledge base', exact: true }).click()
+    await page.getByRole('button', { name: 'Project overview', exact: true }).click()
+    const active = page.locator('iframe[title="WikiMan editor"]:visible')
+    const frame = active.first().contentFrame()
+    const tabs = frame.locator('[data-scoped-tabs] [role="tablist"]')
+    await tabs.getByText('Overview', { exact: true }).waitFor()
+    const files = frame.locator('.file-tree:visible')
+    const reading = files.locator('li[data-node-id="' + secondDocId + '"]')
+    const toggle = files.locator('ul[data-url="' + document.boxId + '"] > li[data-type="navigation-root"] .b3-list-item__toggle')
+    if (!await reading.isVisible()) await toggle.click()
+    await reading.getByText('Reading list', { exact: true }).dblclick()
+    await tabs.getByText('Reading list', { exact: true }).waitFor()
+    await tabs.getByText('Overview', { exact: true }).click()
+    const paragraph = frame.locator('[data-node-id="20261019090002-par0001"] [contenteditable="true"]')
+    await paragraph.click()
+    await page.keyboard.press('End')
+    await page.keyboard.type(' Portable tab edit')
+    await tabs.getByText('Reading list', { exact: true }).click()
+    await frame.getByText('Original SiYuan document tab', { exact: true }).waitFor()
+    await tabs.getByText('Reading list', { exact: true }).click({ button: 'right' })
+    await frame.locator('[data-id="split-copy-right"]').click()
+    await expect.poll(() => active.count(), { timeout: 20_000 }).toBe(2)
+    await page.getByRole('separator', { name: 'Resize Wiki panes' }).press('ArrowLeft')
+    await page.getByRole('separator', { name: 'Resize Wiki panes' }).press('ArrowRight')
+    await page.screenshot({ path: join(REPO_ROOT, '.artifacts/wikiman-portable-light.png') })
+    await wikiPageAction(page, 'Save and close')
+    await expect.poll(() => page.locator('iframe[title="WikiMan editor"]').count()).toBe(0)
+    expect(await readFile(join(source, 'pages', document.pageId, 'data', document.boxId, document.docId + '.docj'), 'utf8')).toContain('Portable tab edit')
+    await page.getByRole('button', { name: 'Project overview', exact: true }).click()
+    await expect.poll(() => active.count(), { timeout: 20_000 }).toBe(2)
+    // Closing a browser peer revokes its parked leases before source maintenance.
+    await page.context().close()
+    const chinese = await browser.newPage({ locale: 'zh-CN', viewport: { width: 1680, height: 1000 }, colorScheme: 'dark' })
+    await chinese.goto(scaffold.authenticatedUrl)
+    await chinese.getByRole('button', { name: '知识库', exact: true }).click()
+    await chinese.getByRole('button', { name: 'Project overview', exact: true }).click()
+    const chineseFrame = chinese.locator('iframe[title="WikiMan 编辑器"]:visible').first().contentFrame()
+    await chineseFrame.getByText('文档树', { exact: true }).waitFor()
+    expect(await chineseFrame.locator('html').getAttribute('lang')).toBe('zh-CN')
+    expect(await chineseFrame.getByRole('button', { name: /登录|会员|订阅|云同步/ }).count()).toBe(0)
+    await chinese.screenshot({ path: join(REPO_ROOT, '.artifacts/wikiman-portable-zh-dark.png') })
+    await chinese.getByRole('button', { name: '页面操作' }).click()
+    await chinese.getByRole('menuitem', { name: '保存并关闭' }).click()
+    await expect.poll(() => chinese.locator('iframe[title="WikiMan 编辑器"]').count()).toBe(0)
+  })
+})
 
 describe.skipIf(runtimeResources === undefined || webSnapshotMode() === 'record')('WikiMan original SiYuan workbench', () => {
   it('uses the DSH language for existing English workspaces and newly created pages', async () => {
