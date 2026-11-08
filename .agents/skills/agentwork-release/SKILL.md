@@ -26,7 +26,7 @@ user-invocable: true
 
 - 人工可选 Actions UI，Agent 可用已授权的 `gh` 调用相同工作流。缺 CLI、未认证、权限不足或缺签名配置须明确报告，不从浏览器/系统读取密码、私钥或令牌。
 - `agentwork-build.yml` 在 develop 推送或手动触发；记录精确 run ID 和 attempt。用 `gh run watch RUN_ID --repo HappyAnony/agent-work --exit-status` 等待；某个 job 成功不代表整套成功。
-- 发布前使用 `agentwork run --repository HappyAnony/agent-work --id RUN_ID --attempt ATTEMPT`。失败、排队、取消、非 develop、PR 来源或错误工作流都不能用于发布。过期资产需要重建；不自动改选其他 attempt。重试构建使用 Re-run all jobs。
+- 发布前使用 `agentwork run --repository HappyAnony/agent-work --id RUN_ID --attempt ATTEMPT`。失败、排队、取消、非 develop、PR 来源或错误工作流都不能用于发布；相同源码还必须通过 AgentWork CI。过期资产需要重建；不自动改选其他 attempt。重试构建使用 Re-run all jobs。
 - `agentwork-release.yml` 先准备 `draft`，供审阅版本、源码及资产。用户明确要求正式发布后才选 `publish`；发布完成还要核验远程标签与资产。源码 commit 不同或同版本摘要不同必须停止。
 - Apple 账号、证书/描述文件授权、钥匙串、设备开发者模式由用户在系统界面处理。未配置 Developer ID/公证不能报告正式 Mac 包已交付。
 

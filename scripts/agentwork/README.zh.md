@@ -32,7 +32,7 @@ description: "AgentWork 构建与发布命令字段、产物保证、故障处�
 | `release` | 多个 `--artifact`、`--out`，可选逗号分隔的 `--require` 和 `--timeout-ms`；汇集本地归档。公开发布仍要求完整产品集合。 |
 | `collect` | `--input` 指向目标 `.tar.gz` 归档目录、`--out`，可选 `--timeout-ms`；导入并汇集完整集合。 |
 | `publish` | `--input`、`--repository`、`--expected-commit`，可选 `--mode draft\|publish`（默认 draft）；校验资产并显式修改 GitHub Release。 |
-| `run` | `--repository`、`--id`、`--attempt`；验证 develop 上成功的 AgentWork 构建及其精确 attempt。 |
+| `run` | `--repository`、`--id`、`--attempt`；验证 develop 上成功的 AgentWork 构建、精确 attempt，以及相同源码通过 AgentWork CI。 |
 | `select` | `--input` 发布目录、`--target`、`--out`、`--expected-commit`；导入绑定源码的单个目标。 |
 | `runner` | `--labels` JSON、`--root`、`--config`；验证受控部署 runner 配置，不创建排队任务。 |
 | `smoke` | `--input` 服务端产物、`--fixture` portable 夹具，可选 `--timeout-ms`；不继承模型/GitHub 凭据，启动隔离的具名 profile，认证后比较实际提供的 Web 字节。 |

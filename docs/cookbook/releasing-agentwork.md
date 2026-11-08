@@ -102,7 +102,7 @@ Open [Actions](https://github.com/HappyAnony/agent-work/actions). `AgentWork CI`
 
 For manual builds, choose **AgentWork build → Run workflow → develop**. Wait for the entire run to succeed and record both its run ID and attempt number. For a retry, use **Re-run all jobs** so all targets consume the same-attempt frontend. A failed-job-only retry cannot silently reuse a previous attempt's resource artifact.
 
-Choose **AgentWork release → Run workflow**, enter the exact successful build run ID and attempt, and select `draft` first. The workflow validates the build's source/event/attempt, downloads its complete release and invokes the same publisher. Select `publish` only for an authorized public release. This workflow alone receives `contents: write`; ordinary builds remain read-only and have no signing secrets.
+Choose **AgentWork release → Run workflow**, enter the exact successful build run ID and attempt, and select `draft` first. The workflow requires AgentWork CI to pass for the same source, validates the build event/attempt, downloads its complete release and invokes the same publisher. Select `publish` only for an authorized public release. This workflow alone receives `contents: write`; ordinary builds remain read-only and have no signing secrets.
 
 With an authenticated GitHub CLI, an Agent or operator can use the same workflow:
 

@@ -32,7 +32,7 @@ Use `pnpm --silent agentwork <command>` from a checkout to build and verify matc
 | `release` | Repeated `--artifact`, `--out`, optional `--require` comma-list and `--timeout-ms`; assemble local archives. Public publication still requires the full product cohort. |
 | `collect` | `--input` directory of target `.tar.gz` archives, `--out`, optional `--timeout-ms`; import and assemble the full cohort. |
 | `publish` | `--input`, `--repository`, `--expected-commit`, optional `--mode draft\|publish` (default draft); verify assets and explicitly mutate GitHub Release. |
-| `run` | `--repository`, `--id`, `--attempt`; validate a successful AgentWork build on develop, including its exact attempt. |
+| `run` | `--repository`, `--id`, `--attempt`; validate a successful develop build, its exact attempt and successful AgentWork CI for the same source. |
 | `select` | `--input` release directory, `--target`, `--out`, `--expected-commit`; import one source-bound target. |
 | `runner` | `--labels` JSON, `--root`, `--config`; validate controlled deployment-runner configuration without queuing a job. |
 | `smoke` | `--input` server artifact, `--fixture` portable fixture, optional `--timeout-ms`; boot an isolated named profile without model/GitHub credentials and compare authenticated served Web bytes. |

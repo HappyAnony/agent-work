@@ -102,7 +102,7 @@ pnpm --silent agentwork publish --input .artifacts/agentwork/release --repositor
 
 手动构建选择 **AgentWork build → Run workflow → develop**。等待整次运行成功，并记录 run ID 和 attempt 次数。重试使用 **Re-run all jobs**，确保所有目标消费同一次 attempt 的共享前端。只重跑失败任务不能静默复用前一次的资源产物。
 
-选择 **AgentWork release → Run workflow**，输入成功构建的精确 run ID 和 attempt，先选 `draft`。工作流验证构建源码、事件和 attempt，下载完整发布集合后调用同一发布器。只有授权公开发布时才选择 `publish`。仅该工作流获得 `contents: write`；普通构建保持只读，不获取签名秘密。
+选择 **AgentWork release → Run workflow**，输入成功构建的精确 run ID 和 attempt，先选 `draft`。工作流要求相同源码通过 AgentWork CI，并验证构建事件和 attempt，下载完整发布集合后调用同一发布器。只有授权公开发布时才选择 `publish`。仅该工作流获得 `contents: write`；普通构建保持只读，不获取签名秘密。
 
 使用已登录的 GitHub CLI，Agent 或人工也可触发同一工作流：
 
