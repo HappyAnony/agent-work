@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { ReleaseError, hashFile } from './model.ts'
 import { requiredTargets, verifyRelease } from './release.ts'
 import { run, type Execution } from './process.ts'
+import { installationReleaseNotes } from './installation.ts'
 
 const assetSchema = z.object({ name: z.string(), digest: z.string().nullable().optional() })
 const remoteSchema = z.object({ id: z.number().int(), tag_name: z.string(), target_commitish: z.string(), draft: z.boolean(),
@@ -34,6 +35,7 @@ export async function publishRelease(directory: string, repository: string, mode
   if (!/^[a-zA-Z0-9-]+\/[a-zA-Z0-9._-]+$/u.test(repository)) throw new ReleaseError('arguments', 'Use an explicit owner/repository publication destination')
   const release = await verifyRelease(directory)
   for (const target of requiredTargets) if (!release.artifacts.some(row => row.target === target)) throw new ReleaseError('missing-target', 'Product publication requires target: ' + target)
+  if (release.schemaVersion !== 2) throw new ReleaseError('missing-installation-guide', 'New publication requires a release with checksummed installation guides')
   if (release.commit !== expectedCommit) throw new ReleaseError('incompatible', 'Release source differs from the selected successful build run')
   if (release.artifacts.some(row => row.signing === 'development-device')) throw new ReleaseError('signing', 'Install Personal Team device builds locally through Xcode; they are not public release assets')
   if (!release.version.includes('-') && release.artifacts.some(row => row.target.startsWith('mac-') && row.signing !== 'developer-id')) throw new ReleaseError('signing', 'Stable Mac releases require verified Developer ID signing and notarization')
@@ -86,7 +88,7 @@ export async function publishRelease(directory: string, repository: string, mode
   }
   if (!remote) {
     const response = await request(base + '/releases', 'POST', JSON.stringify({ tag_name: tag, target_commitish: release.commit, name: 'AgentWork ' + release.version,
-      draft: true, prerelease: release.version.includes('-'), body: 'Release ' + release.releaseId + '\n\n' + release.artifacts.map(row => row.target + ': ' + row.signing).join('\n') }))
+      draft: true, prerelease: release.version.includes('-'), body: installationReleaseNotes(release, repository) }))
     remote = await mutationResult(response, remoteSchema)
   }
   if (remote.tag_name !== tag || (!tagExists && remote.target_commitish !== release.commit)) throw new ReleaseError('version-exists', 'Existing draft belongs to different source; it will not be replaced')

@@ -13,6 +13,7 @@ async function fixture() {
   await assembleRelease(await cohort(root), out, execution)
   const assets: { name: string; digest: string }[] = []
   let created = false, draft = true, uploads = 0, creations = 0, failAfterUpload = false
+  let body = ''
   const response = () => ({ id: 1, tag_name: 'agentwork-v1.0.0-rc.1', target_commitish: 'a'.repeat(40), draft,
     upload_url: 'https://uploads.github.com/repos/fixture/agent-work/releases/1/assets{?name,label}',
     html_url: 'https://github.com/fixture/agent-work/releases/tag/agentwork-v1.0.0-rc.1', assets })
@@ -29,20 +30,23 @@ async function fixture() {
     // The tag endpoint returns published releases; authenticated listings also expose drafts.
     if (url.pathname.includes('/releases/tags/')) return created && !draft ? Response.json(response()) : Response.json({}, { status: 404 })
     if (url.pathname.endsWith('/releases') && (!init?.method || init.method === 'GET')) return Response.json(created ? [response()] : [])
-    if (init?.method === 'POST') { created = true; creations++; return Response.json(response(), { status: 201 }) }
+    if (init?.method === 'POST') { body = typeof init.body === 'string' ? init.body : ''; created = true; creations++; return Response.json(response(), { status: 201 }) }
     if (!created) return Response.json({}, { status: 404 })
     if (init?.method === 'PATCH') draft = false
     return Response.json(response())
   }
   return { out, execution, assets, transport, remote: response, creations: () => creations,
-    uploads: () => uploads, fail: () => { failAfterUpload = true } }
+    body: () => body, uploads: () => uploads, fail: () => { failAfterUpload = true } }
 }
 
 it('creates a verified draft and retries identical assets without overwriting them', async () => {
   const f = await fixture()
   expect(await publishRelease(f.out, 'fixture/agent-work', 'draft', 'a'.repeat(40), f.execution, f.transport)).toMatchObject({ draft: true })
+  const created = JSON.parse(f.body()) as { body: string }
+  for (const asset of f.assets) if (asset.name.endsWith('.tar.gz') || asset.name.startsWith('README')) expect(created.body).toContain(asset.name)
+  expect(created.body).toContain('不能安装到 iPhone')
   const uploaded = f.uploads()
-  expect(uploaded).toBe(7)
+  expect(uploaded).toBe(9)
   await publishRelease(f.out, 'fixture/agent-work', 'draft', 'a'.repeat(40), f.execution, f.transport)
   expect(f.uploads()).toBe(uploaded)
   expect(await publishRelease(f.out, 'fixture/agent-work', 'publish', 'a'.repeat(40), f.execution, f.transport)).toMatchObject({ draft: false })
@@ -66,7 +70,7 @@ it('finds an existing draft beyond the first authenticated release page', async 
   expect(await publishRelease(f.out, 'fixture/agent-work', 'publish', 'a'.repeat(40), f.execution, transport)).toMatchObject({ draft: false })
   expect(pages).toEqual(['1', '2'])
   expect(f.creations()).toBe(1)
-  expect(f.uploads()).toBe(7)
+  expect(f.uploads()).toBe(9)
 })
 
 it.each(['duplicates', 'repeated-page', 'denied', 'missing'])('stops before mutation when draft discovery is unsafe: %s', async (failure) => {
@@ -91,7 +95,7 @@ it('reports an unknown upload outcome and resumes its preserved draft safely', a
   f.fail()
   await expect(publishRelease(f.out, 'fixture/agent-work', 'draft', 'a'.repeat(40), f.execution, f.transport)).rejects.toMatchObject({ code: 'publication-unknown' })
   await publishRelease(f.out, 'fixture/agent-work', 'draft', 'a'.repeat(40), f.execution, f.transport)
-  expect(f.uploads()).toBe(7)
+  expect(f.uploads()).toBe(9)
 })
 
 it.each(['create-json', 'upload-json', 'publish-json', 'create-server-error'])('preserves ambiguous write results: %s', async (failure) => {
@@ -109,7 +113,7 @@ it.each(['create-json', 'upload-json', 'publish-json', 'create-server-error'])('
     .rejects.toMatchObject({ code: 'publication-unknown' })
   expect(await publishRelease(f.out, 'fixture/agent-work', mode, 'a'.repeat(40), f.execution, f.transport))
     .toMatchObject({ draft: mode === 'draft' })
-  expect(f.uploads()).toBe(7)
+  expect(f.uploads()).toBe(9)
 })
 
 it('rejects a wrong build commit and different existing asset content', async () => {

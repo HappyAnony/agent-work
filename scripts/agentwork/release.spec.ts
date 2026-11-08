@@ -1,5 +1,5 @@
 /** Native archive transport and whole-cohort releases preserve bytes and reject incomplete publication inputs. */
-import { access, chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { access, chmod, mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { c } from 'tar'
 import { expect, it } from 'vitest'
@@ -109,4 +109,39 @@ it('finishes extraction and removes its private root before propagating a consum
   await expect(withPackedArtifact(archive, async (path) => { extracted = path; throw failure })).rejects.toBe(failure)
   expect(extracted).not.toBe('')
   await expect(access(extracted)).rejects.toMatchObject({ code: 'ENOENT' })
+})
+
+it('includes both installation guides in the release inventory and rejects missing or modified instructions', async () => {
+  const root = await temporary()
+  const out = join(root, 'release')
+  const release = await assembleRelease(await cohort(root), out, { cwd: root, timeoutMs: 30_000 })
+  expect(release.schemaVersion).toBe(2)
+  if (release.schemaVersion !== 2) throw new Error('Expected a documented release')
+  expect(release.documents.map(row => row.file)).toEqual(['README.md', 'README.en.md'])
+  const chinese = await readFile(join(out, 'README.md'), 'utf8')
+  expect(chinese).toContain('不能直接安装到 iPhone')
+  expect(chinese).toContain('payload/server')
+  for (const row of release.artifacts) expect(chinese).toContain(row.file)
+  const sums = await readFile(join(out, 'SHA256SUMS'), 'utf8')
+  expect(sums).toContain('  README.md\n')
+  expect(sums).toContain('  README.en.md\n')
+  await writeFile(join(out, 'README.md'), 'unverified instructions')
+  await expect(verifyRelease(out)).rejects.toMatchObject({ code: 'integrity-mismatch' })
+  await unlink(join(out, 'README.md'))
+  await expect(verifyRelease(out)).rejects.toMatchObject({ code: 'unexpected-file' })
+})
+
+it('can still verify original release inventories without installation guides', async () => {
+  const root = await temporary()
+  const out = join(root, 'release')
+  const result = await assembleRelease(await cohort(root), out, { cwd: root, timeoutMs: 30_000 })
+  const legacy = { schemaVersion: 1, product: result.product, releaseId: result.releaseId, version: result.version,
+    commit: result.commit, requiredTargets: result.requiredTargets, artifacts: result.artifacts }
+  await unlink(join(out, 'README.md')); await unlink(join(out, 'README.en.md'))
+  await writeFile(join(out, 'release.json'), JSON.stringify(legacy) + '\n')
+  const sums = [...result.artifacts.map(row => ({ file: row.file, sha256: row.sha256 })),
+    { file: 'release.json', sha256: await hashFile(join(out, 'release.json')) }]
+    .sort((a, b) => a.file.localeCompare(b.file, 'en')).map(row => `${row.sha256}  ${row.file}\n`).join('')
+  await writeFile(join(out, 'SHA256SUMS'), sums)
+  expect(await verifyRelease(out)).toEqual(legacy)
 })

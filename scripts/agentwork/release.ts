@@ -7,6 +7,7 @@ import { t, x } from 'tar'
 import { z } from 'zod'
 import { ReleaseError, assertCompatible, assertEmbeddedFrontend, hashFile, targetSchema, verifyArtifact, within, type Manifest, type Target } from './model.ts'
 import { run, type Execution } from './process.ts'
+import { installationReadme } from './installation.ts'
 
 /** Default product cohort; additional native targets are opt-in and remain individually identified. */
 export const requiredTargets: readonly Target[] = [
@@ -14,15 +15,20 @@ export const requiredTargets: readonly Target[] = [
 ]
 
 /** Release inventory contains archive digests and the source identity shared by every target. */
-export const releaseSchema = z.object({
-  schemaVersion: z.literal(1), product: z.literal('AgentWork'), releaseId: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/u),
+const releaseFields = { product: z.literal('AgentWork'), releaseId: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/u),
   version: z.string().regex(/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/u), commit: z.string().regex(/^[a-f0-9]{40}$/u),
   requiredTargets: z.array(targetSchema).min(1),
   artifacts: z.array(z.object({ target: targetSchema,
     file: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]+\.tar\.gz$/u), sha256: z.string().regex(/^[a-f0-9]{64}$/u),
     manifestHash: z.string().regex(/^[a-f0-9]{64}$/u),
     signing: z.enum(['not-applicable', 'unsigned-development', 'developer-id', 'development-device']) }).strict()).min(1),
-}).strict()
+}
+const documentSchema = z.object({ file: z.enum(['README.md', 'README.en.md']), sha256: z.string().regex(/^[a-f0-9]{64}$/u) }).strict()
+/** Versioned release inventory; readers retain schema 1 support for existing releases. */
+export const releaseSchema = z.discriminatedUnion('schemaVersion', [
+  z.object({ ...releaseFields, schemaVersion: z.literal(1) }).strict(),
+  z.object({ ...releaseFields, schemaVersion: z.literal(2), documents: z.array(documentSchema).length(2) }).strict(),
+])
 /** Parsed release inventory. */
 export type Release = z.infer<typeof releaseSchema>
 
@@ -118,10 +124,16 @@ export async function assembleRelease(inputs: readonly string[], out: string, ex
 
 /** Write release metadata only after the complete cohort has passed verification. */
 async function finishRelease(out: string, frontend: Manifest, artifacts: Release['artifacts'], required: readonly Target[]): Promise<Release> {
-  const release = releaseSchema.parse({ schemaVersion: 1, product: 'AgentWork', releaseId: frontend.releaseId, version: frontend.version, commit: frontend.commit,
+  const metadata = { version: frontend.version, commit: frontend.commit, artifacts }
+  const documents = []
+  for (const [file, locale] of [['README.md', 'zh'], ['README.en.md', 'en']] as const) {
+    await writeFile(join(out, file), await installationReadme(metadata, locale), { flag: 'wx' })
+    documents.push({ file, sha256: await hashFile(join(out, file)) })
+  }
+  const release = releaseSchema.parse({ schemaVersion: 2, documents, product: 'AgentWork', releaseId: frontend.releaseId, version: frontend.version, commit: frontend.commit,
     requiredTargets: [...required], artifacts: artifacts.sort((a, b) => a.target.localeCompare(b.target, 'en')) })
   await writeFile(join(out, 'release.json'), JSON.stringify(release, null, 2) + '\n', { flag: 'wx' })
-  const sums = [...artifacts.map(row => ({ file: row.file, sha256: row.sha256 })), { file: 'release.json', sha256: await hashFile(join(out, 'release.json')) }]
+  const sums = [...artifacts.map(row => ({ file: row.file, sha256: row.sha256 })), ...documents, { file: 'release.json', sha256: await hashFile(join(out, 'release.json')) }]
     .sort((a, b) => a.file.localeCompare(b.file, 'en')).map(row => `${row.sha256}  ${row.file}\n`).join('')
   await writeFile(join(out, 'SHA256SUMS'), sums, { flag: 'wx' })
   await verifyRelease(out)
@@ -174,7 +186,9 @@ export async function verifyRelease(directory: string): Promise<Release> {
   if (new Set(release.artifacts.map(row => row.target)).size !== release.artifacts.length || new Set(release.artifacts.map(row => row.file)).size !== release.artifacts.length) throw new ReleaseError('duplicate-target', 'Release target and archive names must be unique')
   if (!release.artifacts.some(row => row.target === 'frontend')) throw new ReleaseError('missing-frontend', 'Release must include shared resources')
   for (const target of release.requiredTargets) if (!release.artifacts.some(row => row.target === target)) throw new ReleaseError('missing-target', 'Required release target is missing: ' + target)
-  const expected = [...release.artifacts.map(row => row.file), 'release.json', 'SHA256SUMS'].sort()
+  const documents = release.schemaVersion === 2 ? release.documents : []
+  if (new Set(documents.map(row => row.file)).size !== documents.length) throw new ReleaseError('unexpected-file', 'Release installation guides must be unique')
+  const expected = [...release.artifacts.map(row => row.file), ...documents.map(row => row.file), 'release.json', 'SHA256SUMS'].sort()
   if (JSON.stringify((await readdir(directory)).sort()) !== JSON.stringify(expected)) throw new ReleaseError('unexpected-file', 'Release contains missing or unlisted files')
   const sums = []
   const manifests: Manifest[] = []
@@ -190,6 +204,10 @@ export async function verifyRelease(directory: string): Promise<Release> {
       if (manifest.target === 'frontend') sharedHash = row.manifestHash
       manifests.push(manifest)
     })
+  }
+  for (const row of documents) {
+    if (await hashFile(join(directory, row.file)) !== row.sha256) throw new ReleaseError('integrity-mismatch', 'Release installation guide checksum failed: ' + row.file)
+    sums.push(row)
   }
   sums.push({ file: 'release.json', sha256: await hashFile(join(directory, 'release.json')) })
   const expectedSums = sums.sort((a, b) => a.file.localeCompare(b.file, 'en')).map(row => `${row.sha256}  ${row.file}\n`).join('')

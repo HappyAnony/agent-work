@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for installing-agentwork-release.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/cookbook/installing-agentwork-release.md
+/:
+  en: 90cf702e7fc5b33c
+  zh: a25342db2ab265a6
+/install-downloaded-agentwork-releases:
+  en: 2a5722f40dcbb629
+  zh: 05827a4283ecbd66
+/install-downloaded-agentwork-releases/summary:
+  en: aaef9eba37ad6b5f
+  zh: 82b1ea0d1c6c3529
+/install-downloaded-agentwork-releases/table-of-contents:
+  en: 7ea04672794d7aa1
+  zh: 18162207da85edf7
+/install-downloaded-agentwork-releases/choose-and-verify-downloads:
+  en: 217d06cece564fda
+  zh: 2a4965675982795f
+/install-downloaded-agentwork-releases/install-the-server:
+  en: ffaf66e7b4d9504d
+  zh: 4e632df453526cfc
+/install-downloaded-agentwork-releases/connect-other-devices:
+  en: 60350cb5e109934d
+  zh: df6fab3d713febc1
+/install-downloaded-agentwork-releases/install-the-mac-app:
+  en: 09df1b781dc4aa9d
+  zh: 0b653a7c23bdc7f4
+/install-downloaded-agentwork-releases/install-the-ios-app:
+  en: 51c8a3dd46228d0b
+  zh: 29621466afe078bf
+/install-downloaded-agentwork-releases/verify-and-upgrade:
+  en: 8333d234e8f972a5
+  zh: 009d6d0be3da9711
+/install-downloaded-agentwork-releases/dev-note:
+  en: 93c748bebd851bd7
+  zh: 7824f858aeea453a

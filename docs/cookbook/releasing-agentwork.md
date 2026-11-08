@@ -85,7 +85,7 @@ pnpm --silent agentwork collect --input .artifacts/agentwork/cohort --out .artif
 pnpm --silent agentwork verify --release --input .artifacts/agentwork/release
 ```
 
-Collection rejects missing targets, changed archives, mixed source/lockfile/protocol/data versions and embedded frontend resources that differ from the shared artifact. The release directory contains target archives, `release.json` and `SHA256SUMS`. Existing output and version directories are preserved. Mac/iOS signing states remain visible in the release inventory.
+Collection rejects missing targets, changed archives, mixed source/lockfile/protocol/data versions and embedded frontend resources that differ from the shared artifact. The release directory contains target archives, `release.json`, `SHA256SUMS`, and checksummed Chinese `README.md` / English `README.en.md` installation guides. GitHub release notes link each target and guide directly; [downloaded-package installation](installing-agentwork-release.md) covers initial server setup. Existing output and version directories are preserved. Mac/iOS signing states remain visible in the release inventory.
 
 Publication is an explicit operation. Authenticate `gh`, or set `GH_TOKEN` privately. Obtain the expected commit from your selected successful build attempt or the fixed local checkout, then prepare a reviewable draft:
 

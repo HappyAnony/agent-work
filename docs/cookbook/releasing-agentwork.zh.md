@@ -85,7 +85,7 @@ pnpm --silent agentwork collect --input .artifacts/agentwork/cohort --out .artif
 pnpm --silent agentwork verify --release --input .artifacts/agentwork/release
 ```
 
-汇集会拒绝缺失目标、归档变更、混用源码/锁文件/协议/数据版本，以及内嵌前端与共享产物字节不一致的情况。发布目录包含目标归档、`release.json` 和 `SHA256SUMS`。保留已有输出与版本目录。Mac/iOS 签名状态在发布清单中明确记录。
+汇集会拒绝缺失目标、归档变更、混用源码/锁文件/协议/数据版本，以及内嵌前端与共享产物字节不一致的情况。发布目录包含目标归档、`release.json`、`SHA256SUMS` 及纳入摘要校验的中文 `README.md` / 英文 `README.en.md` 安装指南。GitHub 发布说明直接链接每个目标和指南；[下载包安装](installing-agentwork-release.zh.md)介绍首次服务端配置。保留已有输出与版本目录。Mac/iOS 签名状态在发布清单中明确记录。
 
 发布是显式操作。先登录 `gh`，或私下设置 `GH_TOKEN`。从选定的成功构建 attempt 或固定本地工作区取得预期提交，再准备可审阅的草稿：
 

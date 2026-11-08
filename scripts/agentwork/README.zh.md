@@ -51,7 +51,7 @@ description: "AgentWork 构建与发布命令字段、产物保证、故障处�
 
 [packaging/agentwork-server](../../packaging/agentwork-server/README.zh.md) 的服务端依赖集合在目标平台编译 Host 库和所有声明 Client 能力的 Node 适配代码、安装生产依赖、实体化包链接，并包含 Node 和 Wiki 原生程序。`node-adapters` 构建阶段不生成浏览器包，浏览器资源从共享产物导入。生成后的 CLI 解析清单包含 WikiMan，源码中的 DSH 默认发行包保持独立。私有启动适配器走普通的 `dsh --profile agentwork-server` 路径。配置、知识库、home、workspace 和备份不属于发布资产。
 
-`release.json` 列出必需目标、归档、摘要、产物清单摘要及签名状态；`SHA256SUMS` 也覆盖发布清单。默认必需集合由 [release.ts](release.ts) 的 `requiredTargets` 定义，并与 Actions 矩阵校验。可选 Linux ARM64 与 Intel Mac 需要对应原生构建机；默认托管矩阵不代表这些额外目标已通过验收。 云端汇集逐个校验归档并保留原生构建机生成的归档字节，不保留整套解包副本。提取过程在清理前完成文件写入，解析失败时同样遵循这一顺序。
+`release.json` 列出必需目标、归档、摘要、产物清单摘要及签名状态；`SHA256SUMS` 也覆盖发布清单。schema 2 包含带摘要的中英文安装指南；已有 schema 1 发布仍可读取，新发布要求 schema 2。默认必需集合由 [release.ts](release.ts) 的 `requiredTargets` 定义，并与 Actions 矩阵校验。可选 Linux ARM64 与 Intel Mac 需要对应原生构建机；默认托管矩阵不代表这些额外目标已通过验收。 云端汇集逐个校验归档并保留原生构建机生成的归档字节，不保留整套解包副本。提取过程在清理前完成文件写入，解析失败时同样遵循这一顺序。
 
 <a id="responsibilities"></a>
 ## 开发职责
