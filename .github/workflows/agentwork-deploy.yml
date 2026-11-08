@@ -42,7 +42,7 @@ jobs:
       artifact: ${{ steps.source.outputs.artifact }}
       commit: ${{ steps.source.outputs.commit }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5.0.0
@@ -71,7 +71,7 @@ jobs:
     environment: agentwork-deploy
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v5.0.0
