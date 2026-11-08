@@ -1,12 +1,12 @@
 /** Native archive transport and whole-cohort releases preserve bytes and reject incomplete publication inputs. */
-import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { access, chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { c } from 'tar'
 import { expect, it } from 'vitest'
 import { artifact, cohort, temporary } from './fixture.ts'
 import { hashFile, seal, verifyArtifact } from './model.ts'
 import { assembleRelease, validateCohort, verifyRelease, withPackedArtifact } from './release.ts'
-import { packArtifact, unpackArtifact } from './transport.ts'
+import { collectArtifacts, packArtifact, unpackArtifact } from './transport.ts'
 
 it('assembles and verifies all required native targets and rejects archive tampering', async () => {
   const root = await temporary()
@@ -74,4 +74,39 @@ it('rejects an escaping archive member before extraction', async () => {
   const archive = join(root, 'escape.tar.gz')
   await c({ cwd: join(root, 'input'), file: archive, gzip: true, preservePaths: true }, ['../outside'])
   await expect(withPackedArtifact(archive, async () => undefined)).rejects.toMatchObject({ code: 'unsafe-archive' })
+})
+
+it('collects exact native archives without rewriting them and rejects incomplete cohorts', async () => {
+  const root = await temporary()
+  const inputs = await cohort(root)
+  const transports = join(root, 'transports')
+  await mkdir(transports)
+  const hashes = new Map<string, string>()
+  for (const input of inputs) {
+    const manifest = await verifyArtifact(input)
+    const archive = join(transports, manifest.target + '.tar.gz')
+    await packArtifact(input, archive, { cwd: root, timeoutMs: 30_000 })
+    hashes.set(manifest.target, await hashFile(archive))
+  }
+  const out = join(root, 'release')
+  const release = await collectArtifacts(transports, out, { cwd: root, timeoutMs: 30_000 })
+  for (const row of release.artifacts) expect(await hashFile(join(out, row.file))).toBe(hashes.get(row.target))
+  await expect(collectArtifacts(transports, out, { cwd: root, timeoutMs: 30_000 })).rejects.toMatchObject({ code: 'output-exists' })
+  const { unlink } = await import('node:fs/promises')
+  await unlink(join(transports, 'ios-simulator.tar.gz'))
+  const incomplete = join(root, 'incomplete')
+  await expect(collectArtifacts(transports, incomplete, { cwd: root, timeoutMs: 30_000 })).rejects.toMatchObject({ code: 'missing-target' })
+  await expect(access(incomplete)).rejects.toMatchObject({ code: 'ENOENT' })
+})
+
+it('finishes extraction and removes its private root before propagating a consumer failure', async () => {
+  const root = await temporary()
+  const { directory } = await artifact(root)
+  const archive = join(root, 'frontend.tar.gz')
+  await packArtifact(directory, archive, { cwd: root, timeoutMs: 30_000 })
+  let extracted = ''
+  const failure = new Error('consumer failed')
+  await expect(withPackedArtifact(archive, async (path) => { extracted = path; throw failure })).rejects.toBe(failure)
+  expect(extracted).not.toBe('')
+  await expect(access(extracted)).rejects.toMatchObject({ code: 'ENOENT' })
 })

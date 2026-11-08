@@ -1,8 +1,8 @@
 /** Workflow artifact transport preserves native executable modes and framework links. */
-import { copyFile, cp, mkdir, mkdtemp, open, readdir, rm } from 'node:fs/promises'
+import { copyFile, cp, mkdir, open, readdir, rm } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import { ReleaseError, hashFile, verifyArtifact, within } from './model.ts'
-import { assembleRelease, verifyRelease, withPackedArtifact } from './release.ts'
+import { assemblePackedRelease, verifyRelease, withPackedArtifact } from './release.ts'
 import type { Target } from './model.ts'
 import { run, type Execution } from './process.ts'
 
@@ -40,17 +40,7 @@ export async function packArtifact(input: string, out: string, execution: Execut
 export async function collectArtifacts(input: string, out: string, execution: Execution) {
   const names = await readdir(input)
   if (!names.length || names.some(name => !/^[a-z0-9-]+\.tar\.gz$/u.test(name))) throw new ReleaseError('invalid-input', 'Collect a directory of named target tar.gz archives only')
-  await mkdir(dirname(out), { recursive: true })
-  const staging = await mkdtemp(join(dirname(out), '.collect-'))
-  try {
-    const directories: string[] = []
-    for (const name of names.sort()) {
-      const directory = join(staging, name.slice(0, -7))
-      await unpackArtifact(join(input, name), directory)
-      directories.push(directory)
-    }
-    return await assembleRelease(directories, out, execution)
-  } finally { await rm(staging, { recursive: true, force: true }) }
+  return assemblePackedRelease(names.sort().map(name => join(input, name)), out, execution)
 }
 
 /**

@@ -1,5 +1,6 @@
 /** Immutable local release assembly; publication consumes only the verified release directory. */
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { constants } from 'node:fs'
+import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { t, x } from 'tar'
@@ -50,7 +51,8 @@ export async function withPackedArtifact<T>(archive: string, consume: (directory
       if (entry.type === 'Link' && (!entry.linkpath || !within(join(root, 'payload'), resolve(root, entry.linkpath)))) invalid ??= new ReleaseError('unsafe-archive', 'Archive hard link leaves its payload')
     } })
     if (invalid) throw invalid
-    await x({ file: archive, cwd: root, strict: true })
+    // Synchronous extraction quiesces file writes before a parser error reaches cleanup.
+    x({ file: archive, cwd: root, strict: true, sync: true })
     return await consume(root, await verifyArtifact(root))
   } finally { await rm(root, { recursive: true, force: true }) }
 }
@@ -108,13 +110,55 @@ export async function assembleRelease(inputs: readonly string[], out: string, ex
       if (manifestHash !== hash) throw new ReleaseError('source-changed', 'An artifact manifest changed during release assembly')
       artifacts.push({ target: manifest.target, file, sha256: await hashFile(join(out, file)), manifestHash, signing: manifest.signing })
     }
-    const release = releaseSchema.parse({ schemaVersion: 1, product: 'AgentWork', releaseId: frontend.releaseId, version: frontend.version, commit: frontend.commit,
-      requiredTargets: [...required], artifacts: artifacts.sort((a, b) => a.target.localeCompare(b.target, 'en')) })
-    await writeFile(join(out, 'release.json'), JSON.stringify(release, null, 2) + '\n', { flag: 'wx' })
-    const sums = [...artifacts.map(row => ({ file: row.file, sha256: row.sha256 })), { file: 'release.json', sha256: await hashFile(join(out, 'release.json')) }]
-      .sort((a, b) => a.file.localeCompare(b.file, 'en')).map(row => `${row.sha256}  ${row.file}\n`).join('')
-    await writeFile(join(out, 'SHA256SUMS'), sums, { flag: 'wx' })
-    await verifyRelease(out)
+    const release = await finishRelease(out, frontend, artifacts, required)
+    complete = true
+    return release
+  } finally { if (!complete) await rm(out, { recursive: true, force: true }) }
+}
+
+/** Write release metadata only after the complete cohort has passed verification. */
+async function finishRelease(out: string, frontend: Manifest, artifacts: Release['artifacts'], required: readonly Target[]): Promise<Release> {
+  const release = releaseSchema.parse({ schemaVersion: 1, product: 'AgentWork', releaseId: frontend.releaseId, version: frontend.version, commit: frontend.commit,
+    requiredTargets: [...required], artifacts: artifacts.sort((a, b) => a.target.localeCompare(b.target, 'en')) })
+  await writeFile(join(out, 'release.json'), JSON.stringify(release, null, 2) + '\n', { flag: 'wx' })
+  const sums = [...artifacts.map(row => ({ file: row.file, sha256: row.sha256 })), { file: 'release.json', sha256: await hashFile(join(out, 'release.json')) }]
+    .sort((a, b) => a.file.localeCompare(b.file, 'en')).map(row => `${row.sha256}  ${row.file}\n`).join('')
+  await writeFile(join(out, 'SHA256SUMS'), sums, { flag: 'wx' })
+  await verifyRelease(out)
+  return release
+}
+
+/**
+ * Assemble verified transport archives without retaining unpacked copies of the whole cohort.
+ * @param inputs - Same-run target archives, including shared frontend resources.
+ * @param out - New immutable release directory, separate from the transport inputs.
+ * @param execution - Cancellation propagated between archive verification operations.
+ * @returns Complete release inventory after checking every copied archive.
+ */
+export async function assemblePackedRelease(inputs: readonly string[], out: string, execution: Execution): Promise<Release> {
+  if (inputs.some(path => within(out, path))) throw new ReleaseError('invalid-output', 'Release output must be separate from artifact inputs')
+  await mkdir(resolve(out, '..'), { recursive: true })
+  try { await mkdir(out) }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === 'EEXIST') throw new ReleaseError('output-exists', 'Release directory already exists; select a new release identifier'); throw error }
+  let complete = false
+  try {
+    const manifests: Manifest[] = []
+    const artifacts: Release['artifacts'] = []
+    let sharedHash = ''
+    for (const input of inputs) {
+      execution.signal?.throwIfAborted()
+      await withPackedArtifact(input, async (root, manifest) => {
+        const file = `${manifest.releaseId}-${manifest.target}.tar.gz`
+        // Exclusive copies preserve the native builder's exact archive and reject duplicate targets.
+        await copyFile(input, join(out, file), constants.COPYFILE_EXCL)
+        const manifestHash = await hashFile(join(root, 'artifact.json'))
+        if (manifest.target === 'frontend') sharedHash = manifestHash
+        manifests.push(manifest)
+        artifacts.push({ target: manifest.target, file, sha256: await hashFile(join(out, file)), manifestHash, signing: manifest.signing })
+      })
+    }
+    const frontend = validateCohort(manifests, sharedHash, requiredTargets)
+    const release = await finishRelease(out, frontend, artifacts, requiredTargets)
     complete = true
     return release
   } finally { if (!complete) await rm(out, { recursive: true, force: true }) }
