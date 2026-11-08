@@ -39,6 +39,17 @@ describe('complete artifact verification', () => {
   })
 
   // Windows filesystems require privileges for symlinks and do not expose POSIX executable modes.
+  it.skipIf(process.platform === 'win32')('retains an internal relative link when the temporary root has filesystem aliases', async () => {
+    const root = await temporary()
+    const alias = join(root, 'through-alias')
+    await symlink(root, alias, 'dir')
+    const { directory, manifest } = await artifact(alias)
+    await symlink('web/index.html', join(directory, 'payload/index-link'))
+    await unlink(join(directory, 'artifact.json'))
+    await seal(directory, manifest)
+    await expect(verifyArtifact(directory)).resolves.toHaveProperty('target', 'frontend')
+  })
+
   it.skipIf(process.platform === 'win32')('rejects an escaping link and changed executable mode', async () => {
     const root = await temporary()
     const { directory } = await artifact(root)
@@ -64,6 +75,29 @@ describe('complete artifact verification', () => {
     await writeFile(file, nativeHeader('darwin', 'arm64'))
     await expect(verifyExecutable(file, 'darwin', 'arm64')).resolves.toBeUndefined()
     await expect(verifyExecutable(file, 'linux', 'arm64')).rejects.toMatchObject({ code: 'wrong-platform' })
+  })
+
+  it('requires a Linux sandbox launcher for the declared CPU', async () => {
+    const root = await temporary()
+    const { directory, manifest } = await artifact(root, 'server-linux-x64')
+    const launcher = join(directory, 'payload/server/node_modules/@deepseek-ai/node-addon-system-linux-x64/bin/landlock-run')
+    await writeFile(launcher, nativeHeader('linux', 'arm64'))
+    await unlink(join(directory, 'artifact.json'))
+    await seal(directory, manifest)
+    await expect(verifyArtifact(directory)).rejects.toMatchObject({ code: 'wrong-platform' })
+    await unlink(launcher)
+    await unlink(join(directory, 'artifact.json'))
+    await seal(directory, manifest)
+    await expect(verifyArtifact(directory)).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
+  it('rejects a resealed server that has browser assets but omits the GUI Node adapter', async () => {
+    const root = await temporary()
+    const { directory, manifest } = await artifact(root, 'server-linux-x64')
+    await unlink(join(directory, 'payload/server/node_modules/@deepseek-ai/dsh-client-modules/lib/index.js'))
+    await unlink(join(directory, 'artifact.json'))
+    await seal(directory, manifest)
+    await expect(verifyArtifact(directory)).rejects.toMatchObject({ code: 'missing-resource' })
   })
 
   it('binds native targets to exact shared resources, source and persistence versions', async () => {

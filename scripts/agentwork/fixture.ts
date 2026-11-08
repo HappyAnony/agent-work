@@ -52,8 +52,11 @@ export async function artifact(root: string, target: Target = 'frontend', overri
     await mkdir(dirname(join(directory, path)), { recursive: true })
     await writeFile(join(directory, path), bytes)
   }
-  if (target.startsWith('server-')) for (const bin of ['bin/node', 'wiki/bin/wiki-cli', 'wiki/bin/wiki-kernel']) await write('payload/server/' + bin, nativeHeader(platform, arch))
-  else if (target.startsWith('mac-')) await write('payload/' + (arch === 'arm64' ? 'mac-arm64' : 'mac') + '/AgentWork.app/Contents/MacOS/AgentWork', nativeHeader('darwin', arch))
+  if (target.startsWith('server-')) {
+    await write('payload/server/node_modules/@deepseek-ai/dsh-client-modules/lib/index.js', 'export {}')
+    for (const bin of ['bin/node', 'wiki/bin/wiki-cli', 'wiki/bin/wiki-kernel']) await write('payload/server/' + bin, nativeHeader(platform, arch))
+    if (platform === 'linux') await write('payload/server/node_modules/@deepseek-ai/node-addon-system-linux-' + arch + '/bin/landlock-run', nativeHeader(platform, arch))
+  } else if (target.startsWith('mac-')) await write('payload/' + (arch === 'arm64' ? 'mac-arm64' : 'mac') + '/AgentWork.app/Contents/MacOS/AgentWork', nativeHeader('darwin', arch))
   else if (target.startsWith('ios-')) await write('payload/' + (target === 'ios-device' ? 'AgentWork-device.app' : 'AgentWork-simulator.app') + '/App', nativeHeader('darwin', arch))
   else {
     const index = '<html>shared</html>', wiki = 'wiki', plugin = 'export const fixture = true'

@@ -107,12 +107,13 @@ function forbidden(path: string): boolean {
  * @returns Sorted file and contained-link records.
  */
 export async function inventory(directory: string): Promise<InventoryEntry[]> {
-  const root = join(directory, 'payload')
+  const artifact = await realpath(directory)
+  const root = join(artifact, 'payload')
   const result: InventoryEntry[] = []
   async function walk(at: string): Promise<void> {
     for (const row of await readdir(at, { withFileTypes: true })) {
       const path = join(at, row.name)
-      const rel = relative(directory, path).split(sep).join('/')
+      const rel = relative(artifact, path).split(sep).join('/')
       if (forbidden(rel)) throw new ReleaseError('secret-file', 'Refusing private configuration or signing material in artifact: ' + rel)
       if (row.isSymbolicLink()) {
         const target = await readlink(path)
@@ -170,7 +171,13 @@ export async function verifyArtifact(directory: string): Promise<Manifest> {
     if (legacy.wikiHash !== await hashFile(join(root, 'wiki/stage/build/portable/boot.js'))) throw new ReleaseError('integrity-mismatch', 'Wiki bootstrap digest differs from the packaged client inventory')
   }
   if (manifest.target.startsWith('server-')) {
+    if (!manifest.files.some(row => row.kind === 'file' && row.path === 'payload/server/node_modules/@deepseek-ai/dsh-client-modules/lib/index.js')) {
+      throw new ReleaseError('missing-resource', 'Server is missing the Node-side GUI module adapter; build node-adapters before deployment')
+    }
     for (const path of ['bin/node', 'wiki/bin/wiki-kernel', 'wiki/bin/wiki-cli']) await verifyExecutable(join(directory, 'payload/server', path), manifest.platform, manifest.arch)
+    if (manifest.platform === 'linux') {
+      await verifyExecutable(join(directory, 'payload/server/node_modules/@deepseek-ai/node-addon-system-linux-' + manifest.arch + '/bin/landlock-run'), 'linux', manifest.arch)
+    }
   } else if (manifest.target.startsWith('mac-')) {
     const folder = manifest.arch === 'arm64' ? 'mac-arm64' : 'mac'
     const macos = join(directory, 'payload', folder, 'AgentWork.app/Contents/MacOS')

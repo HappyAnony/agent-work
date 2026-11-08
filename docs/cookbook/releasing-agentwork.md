@@ -26,7 +26,7 @@ Build the shared frontend once, build each native target on its own platform, an
 <a id="prepare"></a>
 ## Prepare a fixed checkout
 
-Use `develop`, the exact Node version in [.node-version](../../.node-version), pnpm from the root `packageManager`, and a C/C++ compiler. Native Go builds select the version in [go.mod](../../native/wikiman/wiki-kernel/go.mod). Mac and iOS builders require macOS and full Xcode; set `DEVELOPER_DIR` to its `Contents/Developer` directory if Command Line Tools is selected. CI selects Xcode 26.3. The Mac distribution targets macOS 15 or newer; iOS requires 18.4 or newer.
+Use `develop`, the exact Node version in [.node-version](../../.node-version), pnpm from the root `packageManager`, and a C/C++ compiler. Linux server builders also need `musl-gcc` (`musl-tools` on Ubuntu) for the static Landlock launcher and the complete native package; an addon-only source test build is insufficient. Native Go builds select the version in [go.mod](../../native/wikiman/wiki-kernel/go.mod). Mac and iOS builders require macOS and full Xcode; set `DEVELOPER_DIR` to its `Contents/Developer` directory if Command Line Tools is selected. CI selects Xcode 26.3. The Mac distribution targets macOS 15 or newer; iOS requires 18.4 or newer.
 
 Choose and commit the product version using the repository's version policy. The root, CLI, Mac, iOS, server closure and WikiMan manifests must agree. The existing [version updater](../../scripts/release/bump.ts) owns the repository's shared version sequence; AgentWork publication uses separate `agentwork-v<version>` tags and does not publish npm packages or upload to COS.
 

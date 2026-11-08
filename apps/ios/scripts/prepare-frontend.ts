@@ -1,10 +1,12 @@
-/** Assemble the iOS app's verified local resources without backend executables or credentials. */
+/**
+ * Assemble verified iOS resources without backend executables or credentials.
+ * Shared-artifact imports do not load the source frontend compiler.
+ */
 import { cp, mkdir, mkdtemp, rename, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { build } from 'tsdown'
-import { prepareRemoteFrontend } from '../../desktop/scripts/prepare-remote-frontend.ts'
 
 const repository = fileURLToPath(new URL('../../..', import.meta.url))
 const { values } = parseArgs({ options: { frontend: { type: 'string' } } })
@@ -20,7 +22,10 @@ try {
     if (manifest.target !== 'frontend') throw new Error('Use a verified shared frontend artifact')
     await cp(join(source, 'payload'), inventory, { recursive: true })
     count = manifest.files.filter(row => /^payload\/plugins\/@[^/]+\/[^/]+\/client\.js$/u.test(row.path)).length
-  } else count = await prepareRemoteFrontend(repository, inventory)
+  } else {
+    const { prepareRemoteFrontend } = await import('../../desktop/scripts/prepare-remote-frontend.ts')
+    count = await prepareRemoteFrontend(repository, inventory)
+  }
   const www = join(temporary, 'www')
   await cp(join(inventory, 'web'), www, { recursive: true })
   await mkdir(join(www, '_ios'), { recursive: true })

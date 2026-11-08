@@ -33,6 +33,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec vitest run scripts/agentwork scripts/release/families.spec.ts --maxWorkers=2 --testTimeout=60000 --hookTimeout=60000
+      - run: pnpm exec vitest run scripts/client-bundle-purity.spec.ts -t 'client bundle build faces'
       - run: pnpm run build
       - run: pnpm run test:docs
       - run: pnpm run lint

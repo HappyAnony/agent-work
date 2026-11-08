@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { materializeStagedLinks, deduplicateStagedWorkspacePackages } from '../build-exe-for-python-sdk-staging.ts'
 import { verifyStagedDependencies } from '../executable-packaging.ts'
 import { verifyRuntimeClosure } from '../verify-runtime-closure.ts'
+import { referencedProjectsCompilerArgs } from '../compile-referenced-projects.ts'
 import { ReleaseError, assertCompatible, assertEmbeddedFrontend, canonicalPath, hashFile, seal, verifyArtifact, within, type Manifest, type Target } from './model.ts'
 import { pnpm, run, type Execution } from './process.ts'
 
@@ -151,8 +152,10 @@ async function server(request: BuildRequest, metadata: Omit<Manifest, 'files'>, 
   const execution = platform === 'darwin' ? { ...request, env: { ...request.env, MACOSX_DEPLOYMENT_TARGET: '15.0' } } : request
   const closure = await verifyRuntimeClosure(request.repository, 'packaging/agentwork-server/package.json', false)
   if (closure.failures.length) throw new ReleaseError('runtime-closure', 'Declare every required workspace peer in packaging/agentwork-server/package.json before deployment: ' + closure.failures.join('; '))
-  await pnpm(['run', 'build:native-system'], execution)
+  await pnpm(['--filter', '@deepseek-ai/node-addon-system-workspace', 'run', 'build:native'], execution)
   await pnpm(['run', 'build:lib:host'], request)
+  await run(process.execPath, referencedProjectsCompilerArgs(request.repository, 'client', 'checked'), request)
+  await pnpm(['exec', 'tsdown', '--config-loader', 'native', '--env.DSH_BUILD_FACE', 'node-adapters'], request)
   const runtime = join(payload, 'server')
   await pnpm(['--filter', 'agentwork-server-closure', 'deploy', '--prod', '--config.allow-unused-patches=true', '--config.node-linker=hoisted',
     '--config.pnpmfile=' + join(request.repository, 'scripts/python-runtime-deploy.pnpmfile.mjs'), '--config.link-workspace-packages=true', '--config.hoist-workspace-packages=false', runtime], request)

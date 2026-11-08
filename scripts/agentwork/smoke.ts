@@ -26,10 +26,15 @@ export async function smokeServer(input: string, fixture: string, execution: Exe
     const config = join(root, 'server.json')
     await writeFile(config, JSON.stringify({ home, library, workspace, host: '127.0.0.1', port: 0 }), { mode: 0o600 })
     const runtime = join(input, 'payload/server')
+    const env: NodeJS.ProcessEnv = { CI: '1', NO_COLOR: '1', DSH_TELEMETRY_DISABLED: '1' }
+    for (const key of ['PATH', 'LANG', 'LC_ALL', 'TMPDIR', 'TMP', 'TEMP', 'USER', 'LOGNAME', 'SHELL']) {
+      const value = execution.env?.[key] ?? process.env[key]
+      if (value !== undefined) env[key] = value
+    }
     const child = execa(join(runtime, 'bin/node'), [join(runtime, 'start.mjs'), '--config', config], {
       cwd: root, stdout: 'pipe', stderr: 'pipe', reject: false, timeout: execution.timeoutMs,
       killDescendants: true, forceKillAfterDelay: 10_000, ...execution.signal ? { cancelSignal: execution.signal } : {},
-      env: { ...execution.env, DSH_TELEMETRY_DISABLED: '1' },
+      extendEnv: false, env,
     })
     // A rejected transport still has an observer while readiness is being awaited.
     const completion = child.then(value => value, (error: unknown) => error)
@@ -44,7 +49,12 @@ export async function smokeServer(input: string, fixture: string, execution: Exe
           if (address) { child.stdout.off('data', data); child.stdout.resume(); accept(address) }
         }
         child.stdout.on('data', data)
-        void completion.then(() => {
+        void completion.then((result) => {
+          if (typeof result === 'object' && result !== null && 'stderr' in result && typeof result.stderr === 'string') {
+            // The isolated fixture process has exited; do not expose its transient authentication URL.
+            process.stderr.write(result.stderr.slice(-65_536).replace(/https?:\/\/\S+/gu, '[redacted URL]')
+              .replace(/Bearer\s+\S+/gu, 'Bearer [redacted]'))
+          }
           reject(new ReleaseError('runtime-smoke', 'Packaged profile exited before readiness; inspect its configuration and run a private local service log for diagnosis'))
         })
       })

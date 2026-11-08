@@ -26,7 +26,7 @@ description: "构建配套的 AgentWork 服务端和原生客户端产物、汇�
 <a id="prepare"></a>
 ## 准备固定源码
 
-使用 `develop`、[.node-version](../../.node-version) 指定的精确 Node 版本、根 `packageManager` 指定的 pnpm，以及 C/C++ 编译器。原生 Go 构建选择 [go.mod](../../native/wikiman/wiki-kernel/go.mod) 指定的版本。Mac 和 iOS 构建需要 macOS 与完整 Xcode；若当前选择 Command Line Tools，将 `DEVELOPER_DIR` 指向 Xcode 的 `Contents/Developer`。CI 选择 Xcode 26.3。Mac 发行包要求 macOS 15 或更新版本，iOS 要求 18.4 或更新版本。
+使用 `develop`、[.node-version](../../.node-version) 指定的精确 Node 版本、根 `packageManager` 指定的 pnpm，以及 C/C++ 编译器。Linux 服务端构建还需要 `musl-gcc`（Ubuntu 的 `musl-tools`），用于静态 Landlock 启动器和完整原生包；仅编译 addon 的源码测试构建不够。原生 Go 构建选择 [go.mod](../../native/wikiman/wiki-kernel/go.mod) 指定的版本。Mac 和 iOS 构建需要 macOS 与完整 Xcode；若当前选择 Command Line Tools，将 `DEVELOPER_DIR` 指向 Xcode 的 `Contents/Developer`。CI 选择 Xcode 26.3。Mac 发行包要求 macOS 15 或更新版本，iOS 要求 18.4 或更新版本。
 
 按仓库版本规则选定并提交产品版本。根目录、CLI、Mac、iOS、服务端依赖集合和 WikiMan 的清单版本必须一致。现有[版本更新器](../../scripts/release/bump.ts)管理仓库统一版本序列；AgentWork 发布使用独立的 `agentwork-v<version>` 标签，不发布 npm 包，也不上传 COS。
 

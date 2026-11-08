@@ -114,6 +114,7 @@ function browserSourcePath(source: string, sourcemapPath: string): string {
 /**
  * Build the tsdown config for one UI plugin package: the node-half lib build
  * plus the browser client bundle. Client packages emit both halves during the
+ * The node-adapters pass emits only Node outputs for native server packaging.
  * Client pass by default; packages needed for Host reflection may opt into the
  * earlier Host pass. A package-level tsdown.config.ts REPLACES the root
  * workspace layout, so the lib half must be restated here — dropping it leaves
@@ -145,6 +146,10 @@ export function clientBundle(
     const clientFaces = options.dualClient === true
       ? [nodeClientConfig(manifest, clientEntry), client]
       : [client]
+    if (face === 'node-adapters') {
+      const selected = node.filter(config => config.platform !== 'browser')
+      return selected.length ? selected : [SKIP_WORKSPACE_BUILD]
+    }
     if (face === 'host') return options.hostPhase === true ? node : [SKIP_WORKSPACE_BUILD]
     if (face === 'client') {
       return options.hostPhase === true ? clientFaces : [...node, ...clientFaces]
@@ -220,14 +225,18 @@ export function clientLibrary(packageDir: string, libEntry: readonly string[]): 
 }
 
 /**
- * Select arbitrary package-local configs only during the Client pass.
+ * Select package-local Client configs; node-adapters omits browser outputs for server packaging.
  * @param configs - Node-side configs emitted after Client tsc.
  * @returns ENV-selected tsdown config for the Client build face.
  */
 export function clientOnly(configs: readonly UserConfig[]): BuildFaceConfig {
-  return ({ env }) => buildFace(env?.DSH_BUILD_FACE) === 'host'
-    ? [SKIP_WORKSPACE_BUILD]
-    : [...configs]
+  return ({ env }) => {
+    const face = buildFace(env?.DSH_BUILD_FACE)
+    if (face === 'host') return [SKIP_WORKSPACE_BUILD]
+    if (face !== 'node-adapters') return [...configs]
+    const selected = configs.filter(config => config.platform !== 'browser')
+    return selected.length ? selected : [SKIP_WORKSPACE_BUILD]
+  }
 }
 
 interface ClientBundleOptions {
@@ -243,13 +252,13 @@ interface ClientBundleOptions {
   readonly clientBanner?: (fileName: string) => string | undefined
 }
 
-type BuildFace = 'host' | 'client' | undefined
+type BuildFace = 'host' | 'client' | 'node-adapters' | undefined
 
 type BuildFaceConfig = (inlineConfig: Pick<UserConfig, 'env'>) => UserConfig[]
 
 function buildFace(value: unknown): BuildFace {
-  if (value === undefined || value === 'host' || value === 'client') return value
-  throw new Error(`tsdown: --env.DSH_BUILD_FACE must be host or client, received ${String(value)}`)
+  if (value === undefined || value === 'host' || value === 'client' || value === 'node-adapters') return value
+  throw new Error(`tsdown: --env.DSH_BUILD_FACE must be host, client or node-adapters, received ${String(value)}`)
 }
 
 function clientLibraryConfig(

@@ -50,6 +50,17 @@ function clientConfigs(dir = REQUESTING_PACKAGE_DIR) {
 }
 
 describe('client bundle build faces', () => {
+  it('builds only Node adapters while preserving the frozen browser resources', () => {
+    const configs = clientBundle(REQUESTING_PACKAGE_DIR, ['lib/types/index.js'], { companions: [
+      { platform: 'browser', entry: ['browser-worker.js'] }, { platform: 'node', entry: ['node-worker.js'] },
+    ] })({ env: { DSH_BUILD_FACE: 'node-adapters' } })
+    expect(configs).toHaveLength(2)
+    expect(configs[0]).toMatchObject({ platform: 'node', entry: ['lib/types/index.js'] })
+    expect(configs[1]).toMatchObject({ platform: 'node', entry: ['node-worker.js'] })
+    const linked = staticLinked(REQUESTING_PACKAGE_DIR, ['lib/types/client/index.js'])({ env: { DSH_BUILD_FACE: 'node-adapters' } })
+    expect(linked).toEqual([{ entry: '' }])
+  })
+
   it('names both configs and the loader registration after the package directory manifest', () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-client-manifest-'))
     onTestFinished(() => { rmSync(root, { recursive: true, force: true }) })
