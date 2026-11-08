@@ -93,7 +93,7 @@ pnpm --silent agentwork verify --release --input .artifacts/agentwork/release
 pnpm --silent agentwork publish --input .artifacts/agentwork/release --repository HappyAnony/agent-work --mode draft --expected-commit "$(git rev-parse HEAD)"
 ```
 
-审阅草稿及资产后，在获得发布授权时用同一命令改为 `--mode publish`。稳定版 Mac 发布要求 Developer ID 签名和公证；当前未正式签名的 Mac 集合只能作为预发布版本。重试会复用摘要一致的资产，同版本下内容不同会被拒绝。远程变更期间网络失败会报告 `publication-unknown`：先检查保留的草稿，再决定重试。
+审阅草稿及资产后，在获得发布授权时用同一命令改为 `--mode publish`。稳定版 Mac 发布要求 Developer ID 签名和公证；当前未正式签名的 Mac 集合只能作为预发布版本。重试通过经过认证的分页发布列表查找已有草稿，复用原草稿和摘要一致的资产；同版本下内容不同会被拒绝。若存在多个匹配草稿，发布会停止并要求检查，不自动删除草稿。远程变更期间网络失败会报告 `publication-unknown`：先检查保留的草稿，再决定重试。
 
 <a id="actions"></a>
 ## 使用 GitHub Actions

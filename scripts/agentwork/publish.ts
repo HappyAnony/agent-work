@@ -66,9 +66,25 @@ export async function publishRelease(directory: string, repository: string, mode
     if (object.type !== 'commit' || object.sha !== release.commit) throw new ReleaseError('version-exists', 'Release tag already points to different source; choose a new product version')
   }
   const existing = await request(base + '/releases/tags/' + tag)
-  let remote
-  if (existing.ok) remote = remoteSchema.parse(await existing.json())
-  else {
+  let remote = existing.ok ? remoteSchema.parse(await existing.json()) : undefined
+  if (!remote) {
+    // Tag lookup excludes drafts; authenticated release listings include them.
+    const seen = new Set<number>()
+    for (let page = 1; ; page++) {
+      const listing = await request(base + '/releases?per_page=100&page=' + String(page))
+      if (!listing.ok) throw new ReleaseError('github-response', 'Cannot inspect existing drafts; check repository permissions before retrying')
+      const rows = z.array(remoteSchema).parse(await listing.json())
+      for (const row of rows) {
+        if (seen.has(row.id)) throw new ReleaseError('github-response', 'Release listing repeated entries; inspect GitHub before retrying')
+        seen.add(row.id)
+        if (row.tag_name !== tag) continue
+        if (remote) throw new ReleaseError('version-exists', 'Multiple releases use this version; inspect existing drafts before retrying')
+        remote = row
+      }
+      if (rows.length < 100) break
+    }
+  }
+  if (!remote) {
     const response = await request(base + '/releases', 'POST', JSON.stringify({ tag_name: tag, target_commitish: release.commit, name: 'AgentWork ' + release.version,
       draft: true, prerelease: release.version.includes('-'), body: 'Release ' + release.releaseId + '\n\n' + release.artifacts.map(row => row.target + ': ' + row.signing).join('\n') }))
     remote = await mutationResult(response, remoteSchema)

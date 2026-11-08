@@ -93,7 +93,7 @@ Publication is an explicit operation. Authenticate `gh`, or set `GH_TOKEN` priva
 pnpm --silent agentwork publish --input .artifacts/agentwork/release --repository HappyAnony/agent-work --mode draft --expected-commit "$(git rev-parse HEAD)"
 ```
 
-After reviewing the draft and assets, use the same command with `--mode publish` when publication is authorized. Stable Mac releases require Developer ID signing and notarization; the current unsigned Mac cohort can be published only as a prerelease. Matching assets are reused on retry; different content under the same version is rejected. Network failures during mutation report `publication-unknown`: inspect the preserved draft before retrying.
+After reviewing the draft and assets, use the same command with `--mode publish` when publication is authorized. Stable Mac releases require Developer ID signing and notarization; the current unsigned Mac cohort can be published only as a prerelease. Retries find existing drafts through authenticated, paginated release listings and reuse matching assets; different content under the same version is rejected. Multiple matching drafts stop publication for inspection; the publisher never deletes drafts automatically. Network failures during mutation report `publication-unknown`: inspect the preserved draft before retrying.
 
 <a id="actions"></a>
 ## Use GitHub Actions
