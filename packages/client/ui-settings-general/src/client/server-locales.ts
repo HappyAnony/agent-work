@@ -11,6 +11,7 @@ export const serverEn = {
   version: 'The client and server versions differ. Install a matching client or update the server.',
   unsaved: 'The current editor has unsaved changes. Restore its connection and save them before changing servers.',
   network: 'The server is unreachable. Check its address, network and whether the service is running.',
+  storage: 'Local connection credentials could not be read or saved. Check the files, permissions and free space, then reopen the app.',
   promptTitle: 'Service connection required',
   promptDescription: 'This action needs a server connection. Your current input is retained. Configure the service or retry.',
 } as const
@@ -28,6 +29,7 @@ export const serverZh = {
   version: '客户端与服务端版本不匹配，请安装匹配的客户端或更新服务端',
   unsaved: '当前编辑器有未保存内容，请先恢复原服务连接并保存，再切换服务端',
   network: '无法访问服务端，请检查地址、网络以及服务是否已启动',
+  storage: '无法读取或保存本机连接凭据，请检查文件内容、目录权限和可用空间后重新打开应用',
   promptTitle: '需要连接服务端',
   promptDescription: '此操作需要服务端连接，当前输入会保留，请配置服务或重试',
 } satisfies Record<keyof typeof serverEn, string>

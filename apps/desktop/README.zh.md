@@ -12,7 +12,7 @@ Desktop 在原生应用中运行 Harness 工作区。本参考文档说明应用
 
 可选的远程 Mac 发行包在本地打包 Web、插件及 Wiki 前端，连接独立运行的 Host。关闭该客户端后，服务器任务继续运行。构建和连接流程见 [部署 AgentWork 服务端](../../docs/cookbook/deploying-agentwork-server.zh.md)；以下其余章节描述普通 Desktop 发行包。
 
-远程 AgentWork 发行包在连接前打开本地界面。服务端选择和模型 API Key 可在设置中配置；服务不可用时显示提示，不返回启动表单。
+远程 AgentWork 发行包在连接前打开本地界面。服务端选择和模型 API Key 可在设置中配置；服务不可用时显示提示，不返回启动表单。Mac 连接凭据使用[仅当前用户可访问的文件](../../docs/upgrade-guide/v0.2.2-rc.1/agentwork-client-credentials/guide.zh.md)，从原加密设置仅迁移地址。
 
 AgentWork 服务端、Mac 和 iOS 版本产物使用[统一构建与发布流程](../../docs/cookbook/releasing-agentwork.zh.md)；其中远程 Mac 配置直接打包原生壳，不准备内置后端。
 

@@ -9,7 +9,7 @@ English | [中文](guide.zh.md)
 
 ## Change
 
-AgentWork Mac and iOS clients open their packaged interface before server authentication. Server address and access token configuration moves from the startup form to **Settings → Service connection**. DeepSeek sign-in and automatic credential onboarding are hidden; model API keys remain in **Settings → Models**. Existing saved server credentials remain usable.
+AgentWork Mac and iOS clients open their packaged interface before server authentication. Server address and access token configuration moves from the startup form to **Settings → Service connection**. DeepSeek sign-in and automatic credential onboarding are hidden; model API keys remain in **Settings → Models**. Mac credential migration requires [reauthentication with file storage](../agentwork-client-credentials/guide.md); iOS retains its saved credentials.
 
 Prepared frontend directories require `bootstrap.json` alongside `manifest.json`. A new carrier cannot use a directory prepared by the previous packager. The ordinary DSH Desktop distribution and served Web authentication remain unchanged.
 

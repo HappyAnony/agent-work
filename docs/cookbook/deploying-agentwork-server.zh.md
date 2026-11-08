@@ -53,7 +53,7 @@ ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
   -L 127.0.0.1:18680:127.0.0.1:18681 user@server
 ```
 
-Web 访问时，将服务端启动链接的主机和端口替换为 `127.0.0.1:18680`，保留 token。Mac 客户端的**设置 → 服务连接**中填写 `http://127.0.0.1:18680` 和该 token。认证后交换为会话 cookie，Mac 使用 Electron safeStorage 加密保存 cookie。切换服务器需要对应服务器的 token。
+Web 访问时，将服务端启动链接的主机和端口替换为 `127.0.0.1:18680`，保留 token。Mac 客户端的**设置 → 服务连接**中填写 `http://127.0.0.1:18680` 和该 token。认证后交换为会话 cookie，Mac 使用仅当前用户可访问的文件保存 Cookie；位置、保护范围和升级步骤见[客户端凭据存储](../upgrade-guide/v0.2.2-rc.1/agentwork-client-credentials/guide.zh.md)。切换服务器需要对应服务器的 token。
 
 所有设备连接同一个后端才能共享修改。使用知识库副本的 Linux 部署和 Mac 部署仍是独立的数据存储。在**设置 → 服务连接**中确认当前服务端地址。比较更新时还需选择同一个 Wiki 空间；不同空间可以同名。新增笔记本会自动更新其他已连接客户端的文档树。
 

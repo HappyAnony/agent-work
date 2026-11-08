@@ -64,7 +64,7 @@ HTTPS cookie 名称与签名 audience 包含 `https:` scheme，因此即使 host
 可通过 Host Connection 行的 `config.recovery` 覆盖重试上限、增长因子或握手告警与取消时间；[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-client-connection)列出接受的字段。Host 校验这些值，并将其注入所提供的每个页面。Client 在提供 Connection 前校验启动数据，并在 Gateway 启动循环时采用这些默认值；显式传给 `start()` 的时序覆盖优先。增长因子必须是至少为一的有限数。若就绪、失败、取消或硬期限先于告警发生，该告警会被取消。修改 Host 恢复配置后需重新加载页面。
 
 
-浏览器承载层可通过 `ClientTransportHooks.server` 提供设备本地的服务端选择。无需连接 Host 即可读取其认证状态；凭据由原生层保管。`./packaged-server` 入口负责选择与重试，选择失败不会改用其他地址。编辑器通过 `connection/before-server-change` 完成保存；拒绝时阻止原生层切换服务端。
+浏览器承载层可通过 `ClientTransportHooks.server` 提供设备本地的服务端选择。无需连接 Host 即可读取其认证状态；凭据由原生层保管。`./packaged-server` 入口负责选择与重试，选择失败不会改用其他地址。编辑器通过 `connection/before-server-change` 完成保存；拒绝时阻止原生层切换服务端。凭据读写失败使用 `storage` 分类；本地界面仍可使用，保存失败时不会激活连接。
 
 <a id="model-experience"></a>
 ## 模型体验

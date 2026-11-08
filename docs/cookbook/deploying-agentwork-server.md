@@ -53,7 +53,7 @@ ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
   -L 127.0.0.1:18680:127.0.0.1:18681 user@server
 ```
 
-For Web, replace the authority of the server launch URL with `127.0.0.1:18680`, keeping its token. For the Mac client, enter `http://127.0.0.1:18680` and that token in **Settings → Service connection**. Authentication exchanges it for a session cookie. The Mac encrypts its saved cookie with Electron safeStorage. Selecting another server requires that server’s token.
+For Web, replace the authority of the server launch URL with `127.0.0.1:18680`, keeping its token. For the Mac client, enter `http://127.0.0.1:18680` and that token in **Settings → Service connection**. Authentication exchanges it for a session cookie. The Mac saves its cookie in owner-only files; see [client credential storage](../upgrade-guide/v0.2.2-rc.1/agentwork-client-credentials/guide.md) for locations, protection and upgrade steps. Selecting another server requires that server’s token.
 
 Connect every device to the same backend to share changes. A Linux deployment and a Mac deployment with copied libraries remain independent stores. Use **Settings → Service connection** to confirm the selected server address. When comparing updates, also select the same Wiki space; separate spaces can have identical names. Creating a notebook updates the other connected clients’ document trees automatically.
 

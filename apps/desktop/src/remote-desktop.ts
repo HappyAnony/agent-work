@@ -1,8 +1,8 @@
-/** Remote-only desktop carrier: packaged UI and encrypted server credentials, without a local Host process. */
+/** Remote-only desktop carrier with device-owned credentials and no local Host process. */
 import { mkdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, safeStorage, session, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
 import { z } from 'zod'
 import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 import { RemoteClientError, RemoteFrontend, decryptRemoteCookie, readRemoteBootstrap, remoteBootstrapSchema, remoteServerOrigin } from './remote-frontend.ts'
@@ -12,6 +12,8 @@ import { installDesktopShortcuts } from './keyboard.ts'
 import { resolveDesktopLocale } from './locale.ts'
 import { DESKTOP_IPC } from './ipc.ts'
 import { configureRemoteTls } from './remote-tls.ts'
+import { RemoteCredentialFileError, RemoteFileCredentials, remoteFileCredential,
+  type RemoteFileCredential } from './remote-file-credentials.ts'
 
 const settingsSchema = z.object({ serverUrl: z.string(), selectedUrl: z.string().optional(), encryptedCookie: z.string().optional() })
 
@@ -27,10 +29,14 @@ export async function startRemoteDesktop(frontendRoot: string): Promise<() => vo
   const copy = remoteCopy(app.getLocale())
   const directory = app.getPath('userData')
   const settingsPath = join(directory, 'remote-server.json')
+  const fileCredentials = process.platform === 'darwin'
+    ? new RemoteFileCredentials(join(app.getPath('home'), '.agent-work/client'), settingsPath) : undefined
   const partition = session.fromPartition('persist:agentwork-remote')
   let saved: z.infer<typeof settingsSchema> = { serverUrl: '' }
-  try { saved = settingsSchema.parse(JSON.parse(await readFile(settingsPath, 'utf8'))) }
-  catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error }
+  if (!fileCredentials) {
+    try { saved = settingsSchema.parse(JSON.parse(await readFile(settingsPath, 'utf8'))) }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error }
+  }
   let active: { serverUrl: string; cookie: string; bootstrap: z.infer<typeof remoteBootstrapSchema> } | undefined
   let connecting: Promise<void> | undefined
   let requests = new AbortController()
@@ -50,15 +56,19 @@ export async function startRemoteDesktop(frontendRoot: string): Promise<() => vo
   }
   const connect = async (address: string, token?: string) => {
     const serverUrl = remoteServerOrigin(address)
-    const selection = { ...saved, selectedUrl: serverUrl }
-    await mkdir(directory, { recursive: true })
-    await writeFileAtomic(settingsPath, JSON.stringify(selection) + '\n', { mode: 0o600 })
-    saved = selection
     requests.abort()
     requests = new AbortController()
     active = undefined
+    if (fileCredentials) await fileCredentials.select(serverUrl)
+    else {
+      const selection = { ...saved, selectedUrl: serverUrl }
+      await mkdir(directory, { recursive: true })
+      await writeFileAtomic(settingsPath, JSON.stringify(selection) + '\n', { mode: 0o600 })
+      saved = selection
+    }
     const signal = AbortSignal.any([requests.signal, AbortSignal.timeout(15000)])
     let cookie: string
+    let credential: RemoteFileCredential | undefined
     if (token) {
       if (token.length > 4096 || /[\r\n]/u.test(token)) throw new RemoteClientError('remote-auth-token')
       const response = await fetch(serverUrl + '/?token=' + encodeURIComponent(token), { redirect: 'manual', signal })
@@ -66,7 +76,12 @@ export async function startRemoteDesktop(frontendRoot: string): Promise<() => vo
       await response.body?.cancel()
       if (response.status !== 303 || !header) throw new RemoteClientError('remote-authentication')
       cookie = header.split(';')[0] ?? ''
+      if (fileCredentials) credential = remoteFileCredential(serverUrl, header, Date.now())
+    } else if (fileCredentials) {
+      credential = await fileCredentials.credential(serverUrl, Date.now())
+      cookie = credential?.cookie ?? ''
     } else {
+      const { safeStorage } = await import('electron')
       cookie = saved.serverUrl === serverUrl && saved.encryptedCookie && safeStorage.isEncryptionAvailable()
         ? decryptRemoteCookie(saved.encryptedCookie, bytes => safeStorage.decryptString(bytes)) : ''
     }
@@ -75,11 +90,16 @@ export async function startRemoteDesktop(frontendRoot: string): Promise<() => vo
     const bootstrap = await readRemoteBootstrap(response)
     await frontend.verify(bootstrap)
     signal.throwIfAborted()
-    if (!safeStorage.isEncryptionAvailable()) throw new RemoteClientError('remote-credential-storage-unavailable')
-    const next = { serverUrl, selectedUrl: serverUrl, encryptedCookie: safeStorage.encryptString(cookie).toString('base64') }
-    await mkdir(directory, { recursive: true })
-    await writeFileAtomic(settingsPath, JSON.stringify(next) + '\n', { mode: 0o600 })
-    saved = next
+    if (fileCredentials) {
+      if (credential) await fileCredentials.remember(credential)
+    } else {
+      const { safeStorage } = await import('electron')
+      if (!safeStorage.isEncryptionAvailable()) throw new RemoteClientError('remote-credential-storage-unavailable')
+      const next = { serverUrl, selectedUrl: serverUrl, encryptedCookie: safeStorage.encryptString(cookie).toString('base64') }
+      await mkdir(directory, { recursive: true })
+      await writeFileAtomic(settingsPath, JSON.stringify(next) + '\n', { mode: 0o600 })
+      saved = next
+    }
     active = { serverUrl, cookie, bootstrap }
     focus()
   }
@@ -102,7 +122,14 @@ export async function startRemoteDesktop(frontendRoot: string): Promise<() => vo
     callback({ requestHeaders: { ...headers, origin: target.origin, cookie: active.cookie, 'sec-fetch-site': 'same-origin' } })
   })
   partition.setPermissionRequestHandler((_contents, _permission, callback) => { callback(false) })
-  ipcMain.handle('dsh-remote:state', (event) => { assertSender(event); return { serverUrl: saved.selectedUrl ?? (saved.serverUrl || localBootstrap.defaultServerUrl) } })
+  ipcMain.handle('dsh-remote:state', async (event) => {
+    assertSender(event)
+    try {
+      return { serverUrl: fileCredentials
+        ? await fileCredentials.readAddress() || localBootstrap.defaultServerUrl
+        : saved.selectedUrl ?? (saved.serverUrl || localBootstrap.defaultServerUrl) }
+    } catch (error) { return { serverUrl: '', failure: connectionFailure(error) } }
+  })
   ipcMain.handle('dsh-remote:connect', async (event, address: unknown, token: unknown) => {
     assertSender(event)
     if (typeof address !== 'string' || typeof token !== 'string' || connecting) return { ok: false }
@@ -161,8 +188,10 @@ export async function startRemoteDesktop(frontendRoot: string): Promise<() => vo
 }
 
 /** Categorize native failures without exposing server details or credentials. */
-function connectionFailure(error: unknown): 'address' | 'authentication' | 'certificate' | 'version' | 'network' {
+function connectionFailure(error: unknown): 'address' | 'authentication' | 'certificate' | 'version' | 'network' | 'storage' {
+  if (error instanceof RemoteCredentialFileError) return 'storage'
   if (error instanceof RemoteClientError) {
+    if (error.code === 'remote-credential-storage-unavailable') return 'storage'
     if (error.code === 'remote-server-address') return 'address'
     if (error.code === 'remote-auth-token' || error.code === 'remote-authentication' || error.code === 'remote-authentication-required' || error.code === 'remote-bootstrap' && ['401', '403'].includes(error.resource ?? '')) return 'authentication'
     if (['remote-frontend-version', 'remote-plugin-version', 'remote-plugin-integrity', 'remote-wiki-version', 'remote-frontend-integrity', 'remote-bootstrap-invalid'].includes(error.code)) return 'version'

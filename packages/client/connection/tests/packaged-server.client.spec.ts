@@ -62,3 +62,17 @@ it('does not overwrite a new selection when the initial native read finishes lat
     expect(connect).toHaveBeenCalledTimes(1)
   } finally { saved.resolve(''); server.dispose() }
 })
+
+it('keeps settings available after a native credential read failure without contacting the default server', async () => {
+  const connect = vi.fn()
+  const server = new PackagedServer({
+    readAddress: async () => { throw new PackagedServerError('storage') }, connect,
+  }, 'http://127.0.0.1:18686')
+  try {
+    await server.start()
+    expect(server.getSnapshot()).toMatchObject({ phase: 'unavailable', failure: 'storage', configurationRequested: false })
+    expect(connect).not.toHaveBeenCalled()
+    server.requestConfiguration()
+    expect(server.getSnapshot().configurationRequested).toBe(true)
+  } finally { server.dispose() }
+})

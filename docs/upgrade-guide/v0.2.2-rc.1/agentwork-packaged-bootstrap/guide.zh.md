@@ -9,7 +9,7 @@ description: "AgentWork 原生客户端需要打包本地启动信息，并在�
 
 ## 变更
 
-AgentWork Mac 和 iOS 客户端在服务端认证前打开本地界面。服务端地址和访问令牌从启动表单移至**设置 → 服务连接**。DeepSeek 登录和自动凭据引导已隐藏，模型 API Key 仍在**设置 → 模型**中配置。原有已保存服务端凭据仍可使用。
+AgentWork Mac 和 iOS 客户端在服务端认证前打开本地界面。服务端地址和访问令牌从启动表单移至**设置 → 服务连接**。DeepSeek 登录和自动凭据引导已隐藏，模型 API Key 仍在**设置 → 模型**中配置。Mac 凭据迁移须按[文件存储说明重新认证](../agentwork-client-credentials/guide.zh.md)，iOS 保留原有已保存凭据。
 
 准备好的前端目录须在 `manifest.json` 旁包含 `bootstrap.json`。新承载层无法使用旧打包工具生成的目录。普通 DSH Desktop 发行包及 Web 认证保持不变。
 

@@ -437,8 +437,8 @@ it('does not describe a saved selection that failed to apply as unsaved', () => 
   expect(en['desktop.channel.result.apply']).toBe('Settings save error')
 })
 
-it('shows server failure, keeps the entered credential on failure and offers one configuration prompt', async () => {
-  const server = new PackagedServer({ readAddress: async () => '', connect: async () => { throw new PackagedServerError('certificate') } }, '')
+it.each(['certificate', 'storage'] as const)('shows %s failure, retains the entered credential and offers one configuration prompt', async (failure) => {
+  const server = new PackagedServer({ readAddress: async () => '', connect: async () => { throw new PackagedServerError(failure) } }, '')
   const openSettings = vi.fn()
   const props = { ...kit,
     t: ((key: keyof typeof serverEn) => serverEn[key]) as Parameters<typeof ServerConnectionSection>[0]['t'],
@@ -453,8 +453,12 @@ it('shows server failure, keeps the entered credential on failure and offers one
     fireEvent.change(screen.getByLabelText(serverEn.address), { target: { value: 'https://server.test' } })
     fireEvent.change(screen.getByLabelText(serverEn.token), { target: { value: 'test-credential' } })
     fireEvent.click(screen.getByText(serverEn.connect))
-    await screen.findByText(serverEn.certificate)
-    expect(screen.getByRole('alert').textContent).toMatchInlineSnapshot('"The server certificate could not be verified. Check its trust, hostname and expiry."')
+    await screen.findByText(serverEn[failure])
+    if (failure === 'storage') {
+      expect(screen.getByRole('alert').textContent).toMatchInlineSnapshot('"Local connection credentials could not be read or saved. Check the files, permissions and free space, then reopen the app."')
+    } else {
+      expect(screen.getByRole('alert').textContent).toMatchInlineSnapshot('"The server certificate could not be verified. Check its trust, hostname and expiry."')
+    }
     expect(screen.getByLabelText(serverEn.token)).toHaveProperty('value', 'test-credential')
     act(() => { server.requestConfiguration(); server.requestConfiguration() })
     expect(screen.getAllByRole('dialog')).toHaveLength(1)

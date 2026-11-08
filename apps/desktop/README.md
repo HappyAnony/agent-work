@@ -12,7 +12,7 @@ Desktop runs the Harness workspace in a native application. This reference cover
 
 An optional remote-only Mac distribution packages the Web, plugin and Wiki frontends locally and connects to a separately running Host. Closing this client leaves server tasks running. See [deploying an AgentWork server](../../docs/cookbook/deploying-agentwork-server.md) for its build and connection workflow; the remaining sections describe the ordinary Desktop distribution.
 
-The remote AgentWork distribution opens its packaged interface before connecting. Service selection and model API keys are available in Settings, and server failures remain visible without returning to a startup form.
+The remote AgentWork distribution opens its packaged interface before connecting. Service selection and model API keys are available in Settings, and server failures remain visible without returning to a startup form. Mac connection credentials use [owner-only files](../../docs/upgrade-guide/v0.2.2-rc.1/agentwork-client-credentials/guide.md), with address-only migration from the previous encrypted settings.
 
 Versioned AgentWork server, Mac and iOS artifacts use the [unified build and release workflow](../../docs/cookbook/releasing-agentwork.md); its remote Mac configuration packages the carrier without preparing a bundled backend.
 

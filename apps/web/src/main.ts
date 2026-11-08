@@ -6,7 +6,7 @@ import { AppWebEntry, applyIndexInjections } from '@deepseek-ai/dsh-client-web'
 
 type Injections = Parameters<typeof applyIndexInjections>[0]
 interface NativeServerBridge {
-  state(): Promise<{ serverUrl: string }>
+  state(): Promise<{ serverUrl: string; failure?: ServerFailure }>
   connect(address: string, token: string): Promise<{ ok: boolean; failure?: ServerFailure; injections?: Injections }>
   onConfigure?(listener: () => void): () => void
 }
@@ -29,7 +29,11 @@ try {
   const entry = new AppWebEntry(el)
   const native = (globalThis as DesktopBootGlobal).agentworkServer
   const server = native === undefined ? undefined : new PackagedServer({
-    readAddress: async () => (await native.state()).serverUrl,
+    readAddress: async () => {
+      const state = await native.state()
+      if (state.failure) throw new PackagedServerError(state.failure)
+      return state.serverUrl
+    },
     connect: async (address, token) => {
       try { await entry.preparePackagedConnection() }
       catch (_error) { throw new PackagedServerError('unsaved') }

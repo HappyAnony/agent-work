@@ -897,7 +897,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ServerFailure',
-    declaration: 'export type ServerFailure = \'address\' | \'authentication\' | \'certificate\' | \'version\' | \'network\' | \'unsaved\';',
+    declaration: 'export type ServerFailure = \'address\' | \'authentication\' | \'certificate\' | \'version\' | \'network\' | \'unsaved\' | \'storage\';',
   },
   {
     name: 'SessionAreaProps',

@@ -1,7 +1,7 @@
 /** Device-owned server selection for a packaged client; credentials remain in its native carrier. */
 
 /** Failure categories that the connection settings can explain without private diagnostics. */
-export type ServerFailure = 'address' | 'authentication' | 'certificate' | 'version' | 'network' | 'unsaved'
+export type ServerFailure = 'address' | 'authentication' | 'certificate' | 'version' | 'network' | 'unsaved' | 'storage'
 
 /** Authenticated public startup data, after the native carrier verifies packaged resources. */
 export interface PackagedServerBootstrap {
