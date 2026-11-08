@@ -24,6 +24,18 @@ export async function prepareElectronArchive(repository: string, arch: 'arm64' |
   const name = `electron-v${version}-darwin-${arch}.zip`
   const expected = checksums[name]
   if (!expected) throw new ReleaseError('electron-integrity', 'The locked Electron package has no checksum for the selected Mac architecture')
+  const mirrorValue = execution.env?.ELECTRON_MIRROR ?? process.env.ELECTRON_MIRROR ?? 'https://github.com/electron/electron/releases/download/'
+  const parsedMirror = z.url().safeParse(mirrorValue)
+  if (!parsedMirror.success) throw new ReleaseError('arguments', 'ELECTRON_MIRROR must be an HTTPS directory URL')
+  const mirror = new URL(parsedMirror.data)
+  if (mirror.protocol !== 'https:' || mirror.username || mirror.password || mirror.search || mirror.hash || !mirror.pathname.endsWith('/')) {
+    throw new ReleaseError('arguments', 'ELECTRON_MIRROR must be an HTTPS directory URL without credentials, query or fragment')
+  }
+  const directory = (execution.env?.ELECTRON_CUSTOM_DIR ?? process.env.ELECTRON_CUSTOM_DIR ?? 'v{{ version }}').replaceAll('{{ version }}', version)
+  if (!/^[a-zA-Z0-9._-]+$/u.test(directory) || directory === '.' || directory === '..') {
+    throw new ReleaseError('arguments', 'ELECTRON_CUSTOM_DIR must resolve to one version directory')
+  }
+  const url = new URL(directory + '/' + name, mirror).href
   const destination = join(cache, name)
   const verify = async (file: string) => {
     if (await hashFile(file) !== expected) throw new ReleaseError('electron-integrity', 'Electron archive checksum differs from the locked package; inspect the download source and selected cache entry before retrying')
@@ -35,9 +47,9 @@ export async function prepareElectronArchive(repository: string, arch: 'arm64' |
   try {
     const archive = join(temporary, name)
     await execute('curl', ['--fail', '--location', '--silent', '--show-error', '--proto', '=https', '--proto-redir', '=https',
-      '--retry', '3', '--retry-delay', '2', '--retry-max-time', String(Math.ceil(execution.timeoutMs / 1000)),
+      '--retry', '3', '--retry-all-errors', '--retry-delay', '2', '--retry-max-time', String(Math.ceil(execution.timeoutMs / 1000)),
       '--connect-timeout', '20', '--max-time', String(Math.ceil(execution.timeoutMs / 1000)),
-      '--output', archive, `https://github.com/electron/electron/releases/download/v${version}/${name}`], execution)
+      '--output', archive, url], execution)
     await verify(archive)
     try { await link(archive, destination) }
     catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error; await verify(destination) }

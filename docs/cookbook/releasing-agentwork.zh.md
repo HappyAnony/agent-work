@@ -71,7 +71,7 @@ pnpm --silent agentwork build --target mac-arm64 --frontend .artifacts/agentwork
 pnpm --silent agentwork build --target ios-simulator --frontend .artifacts/agentwork/frontend --out .artifacts/agentwork/ios-simulator
 ```
 
-Mac 打包使用系统 `curl` 有限重试下载 Electron，并按锁定 npm 包的 SHA-256 清单校验。已校验归档缓存在 `~/Library/Caches/agentwork-build/electron`；`AGENTWORK_ELECTRON_CACHE` 可指定其他绝对缓存目录。Mac 目标生成采用 ad-hoc 开发签名的 `payload/mac-arm64/AgentWork.app`。可复制到 Applications 供个人使用，不具有 Developer ID/公证保证。正式 Mac 构建选择 `--signing developer-id`，并按[打包指南](../../apps/desktop/packaging/README.zh.md)配置证书、预期身份/Team ID 和 Apple 公证凭据。验证必须成功；缺凭据不会回退为未签名版本。Intel Mac 在 Intel 构建机上使用 `mac-x64` 和 `server-darwin-x64`。
+Mac 打包使用系统 `curl` 有限重试下载 Electron，并按锁定 npm 包的 SHA-256 清单校验。已校验归档缓存在 `~/Library/Caches/agentwork-build/electron`；`AGENTWORK_ELECTRON_CACHE` 可指定其他绝对缓存目录。 镜像可通过 `ELECTRON_MIRROR`（HTTPS 目录 URL）和 `ELECTRON_CUSTOM_DIR`（`{{ version }}` 占位符）配置。托管矩阵显式使用 [Electron 文档列出的镜像](https://www.electronjs.org/docs/latest/tutorial/installation#mirror)，摘要验证仍使用锁定 npm 包的清单。Mac 目标生成采用 ad-hoc 开发签名的 `payload/mac-arm64/AgentWork.app`。可复制到 Applications 供个人使用，不具有 Developer ID/公证保证。正式 Mac 构建选择 `--signing developer-id`，并按[打包指南](../../apps/desktop/packaging/README.zh.md)配置证书、预期身份/Team ID 和 Apple 公证凭据。验证必须成功；缺凭据不会回退为未签名版本。Intel Mac 在 Intel 构建机上使用 `mac-x64` 和 `server-darwin-x64`。
 
 模拟器产物是 `payload/AgentWork-simulator.app`，不是可安装到 iPhone 的 IPA。真机构建使用 `--target ios-device --signing development-device` 和 `AGENTWORK_APPLE_TEAM`；先在 Xcode 配置账号、证书和描述文件。Personal Team 安装及续期仍由[设备所有者操作](../../apps/ios/README.zh.md#build-and-install)。脚本不会安装手机，也不会导出公开分发的 Personal Team 版本。
 

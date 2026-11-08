@@ -15,14 +15,17 @@ async function fixture() {
   const sha256 = createHash('sha256').update(bytes).digest('hex')
   await writeFile(join(pkg, 'package.json'), JSON.stringify({ version: '1.0.0' }))
   await writeFile(join(pkg, 'checksums.json'), JSON.stringify({ [name]: sha256 }))
-  return { root, name, bytes, cache: join(root, 'cache'), execution: { cwd: root, timeoutMs: 30_000 } }
+  return { root, name, bytes, cache: join(root, 'cache'), execution: { cwd: root, timeoutMs: 30_000, env: {
+    ELECTRON_MIRROR: 'https://github.com/electron/electron/releases/download/', ELECTRON_CUSTOM_DIR: 'v{{ version }}',
+  } } }
 }
 
-function downloader(bytes: string): typeof run {
+function downloader(bytes: string, url = 'https://github.com/electron/electron/releases/download/v1.0.0/electron-v1.0.0-darwin-arm64.zip'): typeof run {
   return async (command, args) => {
     expect(command).toBe('curl')
-    expect(args).toContain('https://github.com/electron/electron/releases/download/v1.0.0/electron-v1.0.0-darwin-arm64.zip')
+    expect(args).toContain(url)
     expect(args).toContain('--retry')
+    expect(args).toContain('--retry-all-errors')
     expect(args).not.toContain('--insecure')
     const output = args[args.indexOf('--output') + 1]
     if (!output) throw new Error('Fixture needs the download output')
@@ -72,4 +75,18 @@ it('rejects missing architecture checksums and relative cache configuration befo
   const f = await fixture()
   await expect(prepareElectronArchive(f.root, 'x64', f.cache, f.execution, downloader(f.bytes))).rejects.toMatchObject({ code: 'electron-integrity' })
   await expect(prepareElectronArchive(f.root, 'arm64', 'relative', f.execution, downloader(f.bytes))).rejects.toMatchObject({ code: 'arguments' })
+})
+
+
+it('uses an explicit HTTPS mirror and version directory with the same pinned checksum', async () => {
+  const f = await fixture()
+  const execution = { ...f.execution, env: { ELECTRON_MIRROR: 'https://mirror.example/electron/', ELECTRON_CUSTOM_DIR: '{{ version }}' } }
+  const url = 'https://mirror.example/electron/1.0.0/electron-v1.0.0-darwin-arm64.zip'
+  const file = await prepareElectronArchive(f.root, 'arm64', f.cache, execution, downloader(f.bytes, url))
+  expect(await readFile(file, 'utf8')).toBe(f.bytes)
+  for (const change of [{ ELECTRON_MIRROR: 'http://mirror.example/' }, { ELECTRON_MIRROR: 'https://user:secret@mirror.example/' },
+    { ELECTRON_CUSTOM_DIR: '../escape' }]) {
+    await expect(prepareElectronArchive(f.root, 'arm64', f.cache, { ...execution, env: { ...execution.env, ...change } },
+      downloader(f.bytes, url))).rejects.toMatchObject({ code: 'arguments' })
+  }
 })

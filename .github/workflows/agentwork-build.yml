@@ -97,6 +97,8 @@ jobs:
       - name: Build native target using shared resources
         env:
           TARGET: ${{ matrix.target }}
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_CUSTOM_DIR: '{{ version }}'
         run: |
           if ! pnpm --silent agentwork build --target "$TARGET" --frontend .artifacts/frontend --out .artifacts/target > .artifacts/reports/build.json; then
             cat .artifacts/reports/build.json
