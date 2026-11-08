@@ -74,4 +74,12 @@ it('uses the locked Electron package checksums without disabling archive validat
   const checksums = checksumSchema.parse(JSON.parse(await readFile(join(repository, 'apps/desktop/node_modules/electron/checksums.json'), 'utf8')))
   expect(z.object({ checksums: checksumSchema }).strict().parse(JSON.parse(output))).toEqual({ checksums })
   expect(Object.keys(checksums).some(name => /^electron-v.+-darwin-arm64\.zip$/u.test(name))).toBe(true)
+  const name = Object.keys(checksums).find(value => /^electron-v.+-darwin-arm64\.zip$/u.test(value))
+  if (!name) throw new Error('Expected a pinned Mac archive checksum')
+  const invalid = join(root, name)
+  await writeFile(invalid, 'invalid archive')
+  await expect(run(process.execPath, ['--input-type=module', '-e',
+    `await import(${JSON.stringify(configuration)})`,
+  ], { cwd: repository, timeoutMs: 30_000, env: { DSH_REMOTE_FRONTEND_DIR: root, DSH_DESKTOP_UNSIGNED: '1',
+    DSH_REMOTE_ELECTRON_ARCHIVE: invalid } }, true)).rejects.toMatchObject({ code: 'tool-failed' })
 })

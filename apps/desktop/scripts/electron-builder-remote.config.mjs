@@ -1,12 +1,24 @@
 /** Remote client packaging consumes local frontend resources independently of the bundled DSH backend. */
-import { existsSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { createReadStream, existsSync } from 'node:fs'
+import { pipeline } from 'node:stream/promises'
 import { createRequire } from 'node:module'
-import { resolve } from 'node:path'
+import { basename, isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { resolveMacOSSigningEnvironment, resolveMacOSNotarizationEnvironment } from './desktop-release-environment.mjs'
 
 const require = createRequire(import.meta.url)
 const electronChecksums = require('electron/checksums.json')
+const archive = process.env.DSH_REMOTE_ELECTRON_ARCHIVE
+if (archive) {
+  const version = require('electron/package.json').version
+  const names = ['arm64', 'x64'].map(arch => `electron-v${version}-darwin-${arch}.zip`)
+  if (!isAbsolute(archive) || !names.includes(basename(archive))) throw new Error('Use an absolute official Electron Mac archive path')
+  const hash = createHash('sha256')
+  await pipeline(createReadStream(archive), hash)
+  if (hash.digest('hex') !== electronChecksums[basename(archive)]) throw new Error('Electron archive differs from the locked npm package checksum')
+}
+
 
 const frontend = process.env.DSH_REMOTE_FRONTEND_DIR
 if (!frontend || !existsSync(resolve(frontend, 'manifest.json'))) throw new Error('DSH_REMOTE_FRONTEND_DIR must name prepared remote frontend resources')
@@ -19,6 +31,7 @@ export default {
   appId: process.env.DSH_DESKTOP_APP_ID ?? 'local.agentwork.remote',
   productName: 'AgentWork',
   electronDownload: { checksums: electronChecksums },
+  electronDist: archive,
   extraMetadata: { dshRemoteClient: true },
   asar: true,
   files: ['lib/main.js', 'lib/preload-remote.cjs', 'package.json'],

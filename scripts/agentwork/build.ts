@@ -1,4 +1,5 @@
 /** Platform builders consume one verified frontend instead of independently rebuilding its bytes. */
+import { homedir } from 'node:os'
 import { createHash } from 'node:crypto'
 import { access, chmod, copyFile, cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { join, relative, resolve } from 'node:path'
@@ -8,6 +9,7 @@ import { verifyStagedDependencies } from '../executable-packaging.ts'
 import { verifyRuntimeClosure } from '../verify-runtime-closure.ts'
 import { referencedProjectsCompilerArgs } from '../compile-referenced-projects.ts'
 import { ReleaseError, assertCompatible, assertEmbeddedFrontend, canonicalPath, hashFile, seal, verifyArtifact, within, type Manifest, type Target } from './model.ts'
+import { prepareElectronArchive } from './electron.ts'
 import { pnpm, run, type Execution } from './process.ts'
 
 /** One explicit build request; official builds require a clean checkout. */
@@ -198,8 +200,12 @@ async function mac(request: BuildRequest, metadata: Omit<Manifest, 'files'>, pay
   metadata.signing = request.signing
   if (request.signing === 'development-device') throw new ReleaseError('signing', 'Use unsigned-development or developer-id for a Mac client')
   if (request.signing === 'developer-id' && !(request.env?.CSC_LINK ?? process.env.CSC_LINK)) throw new ReleaseError('signing', 'Configure Developer ID signing before requesting a signed Mac distribution')
+  metadata.tools.electron = pkgSchema.parse(JSON.parse(await readFile(join(request.repository, 'apps/desktop/node_modules/electron/package.json'), 'utf8'))).version
+  metadata.tools.curl = (await run('curl', ['--version'], request, true)).split('\n')[0] ?? ''
+  const archive = await prepareElectronArchive(request.repository, arch,
+    request.env?.AGENTWORK_ELECTRON_CACHE ?? process.env.AGENTWORK_ELECTRON_CACHE ?? join(homedir(), 'Library/Caches/agentwork-build/electron'), request)
   await pnpm(['run', 'build:lib:host'], request)
-  const env = { ...process.env, ...request.env, DSH_REMOTE_FRONTEND_DIR: join(requiredFrontend(request), 'payload'), DSH_REMOTE_OUTPUT_DIR: payload,
+  const env = { ...process.env, ...request.env, DSH_REMOTE_FRONTEND_DIR: join(requiredFrontend(request), 'payload'), DSH_REMOTE_OUTPUT_DIR: payload, DSH_REMOTE_ELECTRON_ARCHIVE: archive,
     DSH_DESKTOP_UNSIGNED: request.signing === 'unsigned-development' ? '1' : '0',
     ...(request.signing === 'unsigned-development' ? { CSC_IDENTITY_AUTO_DISCOVERY: 'false' } : {}) }
   await pnpm(['--filter', '@deepseek-ai/dsh-desktop', 'exec', 'electron-builder', '--config', 'scripts/electron-builder-remote.config.mjs', '--mac', 'dir', '--' + arch, '--publish', 'never'], { ...request, env })
