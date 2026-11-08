@@ -39,7 +39,7 @@ DSH_HOME=/absolute/server-home pnpm dsh --profile agentwork-server \
   --host 127.0.0.1 --port 18681 --no-open
 ```
 
-The terminal prints a launch URL containing an owner access token. Retain it privately. Restarting the server requires the token from the new launch link; reconnect the Mac through **Connect to server…** if its saved cookie is refused. The server stays on loopback; its Wiki kernel also stays private. The home owns model credentials, Sessions and settings. The library directory owns knowledge and attachments; the workspace owns Agent files. Back up all three.
+The terminal prints a launch URL containing an owner access token. Retain it privately. Restarting the server requires the token from the new launch link; open **Settings → Service connection** and enter the current token if the saved cookie is refused. The server stays on loopback; its Wiki kernel also stays private. The home owns model credentials, Sessions and settings. The library directory owns knowledge and attachments; the workspace owns Agent files. Back up all three.
 
 <a id="connect-through-ssh"></a>
 ## Connect through SSH
@@ -51,11 +51,11 @@ ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
   -L 127.0.0.1:18680:127.0.0.1:18681 user@server
 ```
 
-For Web, replace the authority of the server launch URL with `127.0.0.1:18680`, keeping its token. For the Mac client, enter `http://127.0.0.1:18680` and that token on the connection screen. Authentication exchanges it for a session cookie. The Mac encrypts its saved cookie with Electron safeStorage. Selecting another server requires that server’s token.
+For Web, replace the authority of the server launch URL with `127.0.0.1:18680`, keeping its token. For the Mac client, enter `http://127.0.0.1:18680` and that token in **Settings → Service connection**. Authentication exchanges it for a session cookie. The Mac encrypts its saved cookie with Electron safeStorage. Selecting another server requires that server’s token.
 
-Connect every device to the same backend to share changes. A Linux deployment and a Mac deployment with copied libraries remain independent stores. The Mac window title includes the selected server authority. When comparing updates, also select the same Wiki space; separate spaces can have identical names. Creating a notebook updates the other connected clients’ document trees automatically.
+Connect every device to the same backend to share changes. A Linux deployment and a Mac deployment with copied libraries remain independent stores. Use **Settings → Service connection** to confirm the selected server address. When comparing updates, also select the same Wiki space; separate spaces can have identical names. Creating a notebook updates the other connected clients’ document trees automatically.
 
-Add the server workspace through the in-page directory chooser. Select the exact `workspaceRoot` configured by the preparation utility: Wiki tools are available only to Sessions created in that directory. Configure the model through DSH’s normal account or Models settings. These settings affect the selected server.
+Add the server workspace through the in-page directory chooser. Select the exact `workspaceRoot` configured by the preparation utility: Wiki tools are available only to Sessions created in that directory. Configure model API keys through **Settings → Models**; AgentWork hides DeepSeek account sign-in and automatic credential onboarding. These settings affect the selected server.
 
 <a id="package-the-mac-client"></a>
 ## Package the Mac client
@@ -72,7 +72,7 @@ pnpm --dir apps/desktop exec electron-builder \
   --mac --arm64 --publish never
 ```
 
-This command produces a personal, ad-hoc-signed build; distribution with Apple signing and notarization follows the ordinary [packaging guide](../../apps/desktop/packaging/README.md). The client verifies the server’s index, plugin entry and Wiki build fingerprints before opening the workspace. Rebuild the Mac package after changing those assets or adding a client plugin. A version mismatch keeps the connection screen visible.
+This command produces a personal, ad-hoc-signed build; distribution with Apple signing and notarization follows the ordinary [packaging guide](../../apps/desktop/packaging/README.md). The client opens its packaged interface immediately and verifies the server’s index, plugin entry and Wiki build fingerprints before enabling backend features. Rebuild the Mac package after changing those assets or adding a client plugin. A version mismatch appears in **Settings → Service connection** and prevents backend activation. The Mac uses its saved address, or the build composition’s loopback default (`http://127.0.0.1:18686`) when no address is saved. Failure never selects another server automatically.
 
 <a id="install-the-ios-client"></a>
 ## Install the iOS client

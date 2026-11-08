@@ -54,6 +54,7 @@ export class ClientEntries {
   private desired: BootManifest
   private generation = 0
   private stopped = false
+  private packagedBase: BootManifest | undefined
 
   /**
    * Construct the page controller before Cordis boot.
@@ -112,6 +113,30 @@ export class ClientEntries {
     if (!this.release.observe(readRelease(graph))) return Promise.resolve()
     const manifest = parseBootManifest(graph)
     if (entryTargets(manifest) !== entryTargets(this.desired)) this.generation++
+    this.desired = manifest
+    const generation = this.generation
+    return this.enqueue(() => this.reconcile(generation))
+  }
+
+  /**
+   * Reconcile a native carrier's resource-verified graph without replacing identical packaged code.
+   * The carrier must verify every advertised artifact against the installed inventory before calling.
+   * Local startup entries remain available while server-only contributions are added or removed.
+   * @param graph - Authenticated graph whose bundle bytes match the installed application.
+   * @param excluded - Carrier-incompatible entry ids excluded by the application composition.
+   * @returns Reconciliation settlement; failures remain observable through state.
+   */
+  syncPackaged(graph: unknown, excluded: readonly string[]): Promise<void> {
+    const incoming = parseBootManifest(graph)
+    const local = this.packagedBase ??= this.modules.manifest
+    const allowed = (id: string) => !excluded.includes(id)
+    const existing = new Map(this.modules.manifest.modules.map(row => [row.id, row]))
+    const incomingIds = new Set(incoming.modules.map(row => row.id))
+    const modules = [...local.modules.filter(row => !incomingIds.has(row.id)),
+      ...incoming.modules.filter(row => allowed(row.id)).map(row => ({ ...row, rev: existing.get(row.id)?.rev ?? row.rev }))]
+    const manifest: BootManifest = { rev: incoming.rev, ...local.release === undefined ? {} : { release: local.release },
+      modules, plugins: [...local.plugins.filter(row => !incomingIds.has(row.id)), ...incoming.plugins.filter(row => allowed(row.id))] }
+    this.generation++
     this.desired = manifest
     const generation = this.generation
     return this.enqueue(() => this.reconcile(generation))

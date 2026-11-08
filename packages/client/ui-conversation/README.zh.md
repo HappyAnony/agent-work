@@ -196,6 +196,8 @@ selector 必须是 owner currency 的纯函数。非 null 返回值作为 `match
 
 会话标题右键使用共享[右键菜单](../ui-context-menu/README.zh.md)，目标是被点击面包屑所属会话。可复用图片库从其 Factory 注入的 `useContextMenu` hook 获取 `getTriggerProps`。
 
+打包客户端在服务不可用时阻止提交和选择工作区，保留草稿，并请求显示设备本地的服务设置提示。该检查不改变已连接 Peer 的权限。
+
 <a id="model-experience"></a>
 ## 模型体验
 

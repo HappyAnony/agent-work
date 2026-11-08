@@ -18,7 +18,7 @@ export const remoteBootstrapSchema = z.object({
   bundles: z.record(z.string().regex(packageName), digest), injections: z.array(z.unknown()),
 })
 
-/** Failed remote startup operation; the client must remain on its connection form. */
+/** Failed remote connection; the client retains its local interface and reports the failure in Settings. */
 export class RemoteClientError extends Error {
   /**
    * Retain a stable failure code and optional resource identifier without credentials.
@@ -31,6 +31,17 @@ export class RemoteClientError extends Error {
     'remote-bootstrap' | 'remote-credential-storage-unavailable', readonly resource?: string) {
     super(code + (resource === undefined ? '' : ':' + resource))
   }
+}
+
+/**
+ * Decrypt a saved credential or require fresh server authentication after key rotation or denied access.
+ * @param encoded - Native encrypted credential from the device settings file.
+ * @param decrypt - Operating-system credential decryptor.
+ * @returns Decrypted cookie; never returns ciphertext after decryption fails.
+ */
+export function decryptRemoteCookie(encoded: string, decrypt: (bytes: Buffer) => string): string {
+  try { return decrypt(Buffer.from(encoded, 'base64')) }
+  catch (_error) { throw new RemoteClientError('remote-authentication-required') }
 }
 
 /**
@@ -93,6 +104,13 @@ export class RemoteFrontend {
     const frontend = new RemoteFrontend(root, manifest)
     if (createHash('sha256').update(await readFile(join(root, 'web/index.html'))).digest('hex') !== manifest.frontendHash) throw new RemoteClientError('remote-frontend-integrity')
     return frontend
+  }
+
+  /** Read the signed application composition without connecting to a Host. @returns Verified local startup inputs. */
+  async localBootstrap(): Promise<z.infer<typeof remoteBootstrapSchema> & { defaultServerUrl: string }> {
+    const bootstrap = remoteBootstrapSchema.extend({ defaultServerUrl: z.string() }).parse(JSON.parse(await readFile(join(this.root, 'bootstrap.json'), 'utf8')))
+    await this.verify(bootstrap)
+    return bootstrap
   }
 
   /**

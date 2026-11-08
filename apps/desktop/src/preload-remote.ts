@@ -6,15 +6,18 @@ import { syncNativeTheme } from './preload-theme.ts'
 
 if (location.protocol === 'dsh-app:' && location.hostname === 'app' && process.isMainFrame) {
   contextBridge.exposeInMainWorld('dshDesktop', { protocolVersion: 1, ...desktopKeyboardApi() })
+  contextBridge.exposeInMainWorld('agentworkServer', {
+    state: () => ipcRenderer.invoke('dsh-remote:state'),
+    connect: (address: string, token: string) => ipcRenderer.invoke('dsh-remote:connect', address, token),
+    onConfigure: (listener: () => void) => {
+      const callback = () => { listener() }
+      ipcRenderer.on('dsh-remote:configure', callback)
+      return () => { ipcRenderer.removeListener('dsh-remote:configure', callback) }
+    },
+  })
   contextBridge.exposeInMainWorld('dshDesktopBoot', {
     ready: () => ipcRenderer.invoke('dsh-remote:boot'),
     failed: (message: string) => ipcRenderer.invoke('dsh-remote:failed', message),
-  })
-}
-if (location.protocol === 'dsh-app:' && location.hostname === 'shell' && process.isMainFrame) {
-  contextBridge.exposeInMainWorld('agentworkConnect', {
-    state: () => ipcRenderer.invoke('dsh-remote:state'),
-    connect: (address: string, token: string) => ipcRenderer.invoke('dsh-remote:connect', address, token),
   })
 }
 markDocumentPlatform()

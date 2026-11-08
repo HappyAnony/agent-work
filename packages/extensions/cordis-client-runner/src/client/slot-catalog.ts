@@ -2624,6 +2624,8 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'client-ui-conversation ConversationPanel key \'conversation\'',
       'client-ui-plugin-manager PluginManagerPage',
       'client-ui-schedule TaskManagerPage',
+      'wikiman DisconnectedWiki',
+      'wikiman DisconnectedWiki',
       'wikiman WikiPanel',
     ],
     replaceRisk: 'shadows-shipped-ui',
@@ -3736,6 +3738,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [
       'client-ui-agent-preset AgentPresetSection id \'agent-presets\'',
       'client-ui-settings-account AccountSection id \'account\'',
+      'client-ui-settings-general ServerConnectionSection id \'server\'',
       'client-ui-settings-general GeneralSection id \'general\'',
       'client-ui-settings-models ModelsSection id \'models\'',
       'client-ui-settings-plugins PluginsSettingsSection id \'plugins\'',
@@ -3948,6 +3951,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'client-ui-settings-account DesktopOnboardingEntry id \'desktop-onboarding\'',
       'client-ui-settings-account AccountPlatformHost id \'account.platform-page\'',
       'client-ui-settings-general DesktopChannelToast id \'desktop-channel-toast\'',
+      'client-ui-settings-general ServerConnectionPrompt id \'server-connection\'',
       'client-ui-settings-general HostReleasePrompt id \'host-release-change\'',
       'client-ui-settings-session-log UploadToast id \'session-log-upload-toast\'',
       'client-ui-shortcuts ShortcutReference id \'shortcuts\'',
@@ -4254,6 +4258,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [
       'client-ui-plugin-manager PluginsPanelIcon',
       'client-ui-schedule TaskManagerIcon',
+      'wikiman Icon',
       'wikiman Icon',
     ],
     replaceRisk: 'none',

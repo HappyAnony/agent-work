@@ -42,6 +42,8 @@ export interface PopupDismissFace {
 export interface SessionInputDeps {
   /** Session-scope ctx handed to claim.submit transactions. */
   actx: Context
+  /** Refuse submission without consuming the draft when the native server is unavailable. */
+  requireServer?: () => boolean
   /** Snapshot the Session facts before asynchronous command arbitration. */
   submissionState?: () => MessageSubmissionState
   /** Notify one ordinary message attempt before reference serialization. */
@@ -391,6 +393,7 @@ export class SessionInputShell implements SessionInput {
    */
   submit(mode: InputSubmitMode = 'queue', source?: 'click' | 'enter', allowEmpty = false): void {
     if (this.disposed) return
+    if (this.deps.requireServer?.() === false) return
     const timestamp = Date.now()
     let state: MessageSubmissionState | undefined
     if (this.snapshot.phase === 'plain' && (this.snapshot.draft.trim() !== '' || this.attachmentIds.length > 0)) {

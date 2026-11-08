@@ -39,7 +39,7 @@ DSH_HOME=/absolute/server-home pnpm dsh --profile agentwork-server \
   --host 127.0.0.1 --port 18681 --no-open
 ```
 
-终端会输出包含 owner 访问令牌的启动链接，请妥善保管。服务端重启后须使用新启动链接中的 token；Mac 保存的 cookie 被拒绝时，可通过**连接服务器…**重新认证。服务监听回环地址，Wiki 内核也保持私有。home 保存模型凭据、Session 和设置；知识库目录保存知识及附件；工作区保存 Agent 文件。三者都需要备份。
+终端会输出包含 owner 访问令牌的启动链接，请妥善保管。服务端重启后须使用新启动链接中的 token；Mac 保存的 cookie 被拒绝时，可在**设置 → 服务连接**中填写当前 token 重新认证。服务监听回环地址，Wiki 内核也保持私有。home 保存模型凭据、Session 和设置；知识库目录保存知识及附件；工作区保存 Agent 文件。三者都需要备份。
 
 <a id="connect-through-ssh"></a>
 ## 通过 SSH 访问
@@ -51,11 +51,11 @@ ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
   -L 127.0.0.1:18680:127.0.0.1:18681 user@server
 ```
 
-Web 访问时，将服务端启动链接的主机和端口替换为 `127.0.0.1:18680`，保留 token。Mac 客户端连接界面填写 `http://127.0.0.1:18680` 和该 token。认证后交换为会话 cookie，Mac 使用 Electron safeStorage 加密保存 cookie。切换服务器需要对应服务器的 token。
+Web 访问时，将服务端启动链接的主机和端口替换为 `127.0.0.1:18680`，保留 token。Mac 客户端的**设置 → 服务连接**中填写 `http://127.0.0.1:18680` 和该 token。认证后交换为会话 cookie，Mac 使用 Electron safeStorage 加密保存 cookie。切换服务器需要对应服务器的 token。
 
-所有设备连接同一个后端才能共享修改。使用知识库副本的 Linux 部署和 Mac 部署仍是独立的数据存储。Mac 窗口标题显示当前服务器的主机和端口。比较更新时还需选择同一个 Wiki 空间；不同空间可以同名。新增笔记本会自动更新其他已连接客户端的文档树。
+所有设备连接同一个后端才能共享修改。使用知识库副本的 Linux 部署和 Mac 部署仍是独立的数据存储。在**设置 → 服务连接**中确认当前服务端地址。比较更新时还需选择同一个 Wiki 空间；不同空间可以同名。新增笔记本会自动更新其他已连接客户端的文档树。
 
-通过页面内目录选择器添加服务端工作区。选择准备工具配置的精确 `workspaceRoot`：Wiki 工具仅对该目录下创建的 Session 可用。通过 DSH 原有账号或模型设置配置模型，这些设置作用于所选服务端。
+通过页面内目录选择器添加服务端工作区。选择准备工具配置的精确 `workspaceRoot`：Wiki 工具仅对该目录下创建的 Session 可用。通过**设置 → 模型**配置模型 API Key；AgentWork 隐藏 DeepSeek 账号登录及自动凭据引导，这些设置作用于所选服务端。
 
 <a id="package-the-mac-client"></a>
 ## 打包 Mac 客户端
@@ -72,7 +72,7 @@ pnpm --dir apps/desktop exec electron-builder \
   --mac --arm64 --publish never
 ```
 
-此命令生成个人使用的临时签名构建；Apple 签名和公证发行遵循普通 [打包指南](../../apps/desktop/packaging/README.zh.md)。客户端打开工作区前校验服务端 index、插件入口及 Wiki 构建摘要。修改这些资源或新增客户端插件后需重新打包 Mac 客户端；版本不匹配时会保留在连接界面。
+此命令生成个人使用的临时签名构建；Apple 签名和公证发行遵循普通 [打包指南](../../apps/desktop/packaging/README.zh.md)。客户端立即打开本地界面，在启用后端功能前校验服务端 index、插件入口及 Wiki 构建摘要。修改这些资源或新增客户端插件后需重新打包 Mac 客户端；版本不匹配时会在**设置 → 服务连接**中显示错误，并阻止启用后端功能。Mac 优先使用保存的地址；未保存时使用构建配置中的回环默认地址（`http://127.0.0.1:18686`）。连接失败不会自动选择其他服务端。
 
 <a id="install-the-ios-client"></a>
 ## 安装 iOS 客户端

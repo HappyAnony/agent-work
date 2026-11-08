@@ -669,3 +669,21 @@ describe('Host release changes', () => {
     expect(error).toHaveBeenCalledWith('client-modules: release change subscriber failed', failure)
   })
 })
+
+it('keeps packaged shell instances and drafts when a verified server graph uses different revision labels', async () => {
+  const effects = { mounted: 0, disposed: 0, hits: 0 }
+  const extra = { mounted: 0, disposed: 0, hits: 0 }
+  const b = await bench(graph(row('shell', 'packaged')), { shell: visible('shell', effects), extra: visible('extra', extra) })
+  const shell = document.querySelector('[data-live=shell]')!
+  const input = document.createElement('textarea')
+  input.value = 'unsent draft'
+  shell.append(input)
+  await b.modules.entries.syncPackaged(graph(row('shell', 'server-stat'), row('extra')), [])
+  expect(document.querySelector('[data-live=shell]')).toBe(shell)
+  expect(input.value).toBe('unsent draft')
+  expect(effects).toMatchObject({ mounted: 1, disposed: 0 })
+  await b.modules.entries.syncPackaged(graph(row('extra', 'another-stat')), [])
+  expect(document.querySelector('[data-live=shell]')).toBe(shell)
+  expect(extra).toMatchObject({ mounted: 1, disposed: 0 })
+  expect(() => b.modules.entries.syncPackaged({ entries: 'invalid' }, [])).toThrow()
+})

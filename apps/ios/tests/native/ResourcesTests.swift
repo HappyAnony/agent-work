@@ -44,6 +44,8 @@ final class ResourcesTests: XCTestCase {
         XCTAssertEqual(FrontendCatalog.assetPath(root: root, generated: catalog.generated, path: "/plugins/@test/plugin/client.js"), root.appendingPathComponent("_ios/plugins/@test/plugin/client.js").path)
         var bootstrap = manifest
         bootstrap["injections"] = [["kind": "global", "name": "__DSH_WIKIMAN_ASSETS__", "value": FrontendCatalog.digest(wiki)]]
+        try put("bootstrap.json", JSONSerialization.data(withJSONObject: bootstrap))
+        XCTAssertEqual(try catalog.localBootstrap()["frontendHash"] as? String, FrontendCatalog.digest(index))
         XCTAssertNoThrow(try catalog.verify(bootstrap))
         XCTAssertTrue(try catalog.prepareBundle("/plugins/??@test/plugin/client.js").hasPrefix("/_ios/modules/"))
         XCTAssertNoThrow(try catalog.prepareBundle("dsh-app://app/plugins/?%3F%40test%2Fplugin%2Fclient.js&rev=fixture"))

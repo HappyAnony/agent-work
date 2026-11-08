@@ -145,6 +145,12 @@ final class FrontendCatalog {
         try FileManager.default.createDirectory(at: generated, withIntermediateDirectories: true)
     }
 
+    func localBootstrap() throws -> [String: Any] {
+        guard let data = try JSONSerialization.jsonObject(with: Data(contentsOf: root.appendingPathComponent("bootstrap.json"))) as? [String: Any] else { throw RemoteFailure.resource }
+        try verify(data)
+        return data
+    }
+
     func verify(_ bootstrap: [String: Any]) throws {
         guard let version = bootstrap["protocolVersion"] as? NSNumber,
               CFGetTypeID(version) != CFBooleanGetTypeID(), version.doubleValue == 1,

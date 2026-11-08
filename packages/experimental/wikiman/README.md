@@ -134,6 +134,8 @@ Search and reads query the portable kernel directly. A read result carries the s
 
 -----
 
+Packaged clients keep Knowledge base navigation available before authentication. Editors activate after the connection is ready; changing servers drains all open portable editors and blocks the change if saving fails.
+
 <a id="model-experience"></a>
 ## Model Experience
 

@@ -5,18 +5,26 @@ final class RemoteRuntime {
     let network = RemoteNetwork()
     let catalog: FrontendCatalog
     private let vault: CredentialVault
+    private let selectionKey: String
     private let lock = NSLock()
     private var credential: RemoteCredential?
 
     init(root: URL, generated: URL, service: String) throws {
         catalog = try FrontendCatalog(root: root, generated: generated)
         vault = CredentialVault(service: service)
+        selectionKey = service + ".selected-server"
     }
 
-    func savedAddress() throws -> String { try vault.load()?.authority.origin ?? "" }
+    func savedAddress() throws -> String {
+        if let selected = UserDefaults.standard.string(forKey: selectionKey) { return selected }
+        return try vault.load()?.authority.origin ?? ""
+    }
 
     func connect(address: String, token: String) async throws {
         let authority = try RemoteAuthority(address)
+        UserDefaults.standard.set(authority.origin, forKey: selectionKey)
+        network.reset()
+        setCredential(nil)
         let next: RemoteCredential
         if token.isEmpty {
             guard let saved = try vault.load(), saved.authority == authority else { throw RemoteFailure.authentication }
@@ -35,6 +43,7 @@ final class RemoteRuntime {
         }
         _ = try await readBootstrap(next)
         try vault.save(next)
+        network.reset()
         setCredential(next)
     }
 
@@ -93,7 +102,7 @@ final class RemoteRuntime {
         guard let value = credential else { throw RemoteFailure.disconnected }
         return value
     }
-    private func setCredential(_ value: RemoteCredential) {
+    private func setCredential(_ value: RemoteCredential?) {
         lock.lock(); defer { lock.unlock() }
         credential = value
     }

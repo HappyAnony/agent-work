@@ -8,12 +8,13 @@ if (!frontend || !existsSync(resolve(frontend, 'manifest.json'))) throw new Erro
 const config = createElectronBuilderConfig({ ...process.env, DSH_DESKTOP_APP_ID: process.env.DSH_DESKTOP_APP_ID ?? 'local.agentwork.remote' })
 config.productName = 'AgentWork'
 config.extraMetadata = { ...config.extraMetadata, dshRemoteClient: true }
-config.files = ['lib/main.js', 'lib/preload-remote.cjs', 'renderer/remote.html', 'renderer/remote.js', 'renderer/remote.css', 'package.json']
+config.files = ['lib/main.js', 'lib/preload-remote.cjs', 'package.json']
 config.extraResources = [{ from: resolve(frontend), to: 'frontend' }]
 config.afterPack = async context => {
   const resources = context.packager.getResourcesDir(context.appOutDir)
   const { RemoteFrontend } = await import('../lib/types/remote-frontend.js')
-  await RemoteFrontend.load(resolve(resources, 'frontend'))
+  const frontend = await RemoteFrontend.load(resolve(resources, 'frontend'))
+  await frontend.localBootstrap()
 }
 if (process.env.DSH_REMOTE_OUTPUT_DIR) config.directories = { ...config.directories, output: resolve(process.env.DSH_REMOTE_OUTPUT_DIR) }
 config.artifactName = 'AgentWork-remote-${version}-${os}-${arch}.${ext}'

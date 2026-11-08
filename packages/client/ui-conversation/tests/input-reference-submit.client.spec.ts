@@ -403,3 +403,18 @@ it('retains occurrence time and Session facts across arbitration and failed send
     clock.mockRestore()
   }
 })
+
+it('retains rich input while the native service guard requests configuration', () => {
+  const requireServer = vi.fn(() => false)
+  const sink = vi.fn()
+  const shell = new SessionInputShell({ actx: {} as Context, defaultSink: sink, commandAttachments, requireServer })
+  try {
+    chip(shell)
+    const before = shell.draftSnapshot
+    shell.submit('queue', 'click')
+    expect(requireServer).toHaveBeenCalledTimes(1)
+    expect(sink).not.toHaveBeenCalled()
+    expect(shell.draftSnapshot).toEqual(before)
+    expect(shell.snapshot.phase).toBe('plain')
+  } finally { shell.dispose() }
+})

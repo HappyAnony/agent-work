@@ -110,6 +110,8 @@ Web 和 Desktop 的数学公式渲染要求支持 WOFF2。[Web 构建](../../../
 
 -----
 
+打包承载层可在认证前挂载本地组合。`AppWebEntry.connectPackaged` 在当前文档中应用 Host 公开全局值和已校验资源的模块图，再重连传输。调用方须先校验所有所需产物；本地组合不授予后端权限。
+
 <a id="model-experience"></a>
 ## 模型体验
 

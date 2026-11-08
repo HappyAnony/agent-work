@@ -13,7 +13,7 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-remote-access/client'
 // Type-only: pulls the ctx.remote merge and its fixed Host facts.
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
-import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
+import type { ConnectionState, ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
 // Type-only: pulls the ctx.modules merge.
 import type {} from '@deepseek-ai/dsh-client-modules/client'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
@@ -46,6 +46,8 @@ import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
 import type { SettingsDocumentActionInjected } from './SettingsDocumentAction.tsx'
 import { SettingsDocumentStore } from './settings-document-store.ts'
 import { HostReleasePrompt, type HostReleasePromptInjected } from './HostReleasePrompt.tsx'
+import { ServerConnectionSection, ServerConnectionPrompt, type ServerConnectionInjected } from './ServerConnection.tsx'
+import { serverEn, serverZh } from './server-locales.ts'
 import { en, ja, es, fr, de, ru, pt, zh, type SettingsKey } from './locales.ts'
 
 export type {
@@ -103,6 +105,19 @@ export function apply(ctx: ClientContext): void {
   }, CurrentVersionRow))
   ctx.effect(() => ctx.locale.register(NS, { zh, en, ja, es, fr, de, ru, pt }), 'ui-settings-general: dictionaries')
   const connection = ctx.get('connection') as ConnectionHandle
+  const server = connection.server
+  const connectionState = server === undefined ? connection.state : {
+    getSnapshot: (): ConnectionState | undefined => {
+      const phase = server.getSnapshot().phase
+      return phase === 'connected' ? connection.state.getSnapshot()
+        : phase === 'connecting' ? 'connecting' : 'disconnected'
+    },
+    subscribe: (listener: () => void) => {
+      const a = server.subscribe(listener), b = connection.state.subscribe(listener)
+      return () => { a(); b() }
+    },
+  }
+  if (server !== undefined) ctx.effect(() => ctx.locale.register('settings.server', { en: serverEn, zh: serverZh }), 'ui-settings-general: service dictionaries')
   const carrier = (globalThis as typeof globalThis & { dshDesktop?: { protocolVersion: number; updates?: DesktopUpdateBridge } }).dshDesktop
   const desktopUpdate = new DesktopUpdateSource(carrier?.protocolVersion === 1 ? carrier.updates : undefined)
   ctx.effect(() => () => { desktopUpdate.dispose() }, 'ui-settings-general: desktop update carrier')
@@ -123,7 +138,7 @@ export function apply(ctx: ClientContext): void {
 
   ctx.slots.inject('sidebar.toggle.badge', () => ctx.slots.register({
     name: 'sidebar.toggle.badge', locale: NS,
-    inject: () => ({ hooks: { desktopUpdate: desktopUpdate.store, connectionState: connection.state } }),
+    inject: () => ({ hooks: { desktopUpdate: desktopUpdate.store, connectionState } }),
   }, DesktopUpdateBadge))
 
   // Copy freshness is framework-owned: components read the standard `t`
@@ -153,11 +168,11 @@ export function apply(ctx: ClientContext): void {
   let onboardingSteps: readonly SettingsOnboardingStep[] = []
   const shellInjected = (): SettingsRootInjected => ({
     openDesktopUpdate: () => { desktopUpdate.open() },
-    reconnect: () => { connection.reconnect() },
+    reconnect: () => { if (server === undefined) connection.reconnect(); else void server.retry() },
     hooks: {
       shortcuts: ctx.shortcuts.catalog,
       desktopUpdate: desktopUpdate.store,
-      connectionState: connection.state,
+      connectionState,
       sections: {
         getSnapshot: () => {
           const version = ctx.slots.getVersion('settings.section')
@@ -205,48 +220,62 @@ export function apply(ctx: ClientContext): void {
     },
   })
   // The settings shell reads this host's configuration, so it follows access to its description.
-  ctx.remoteAccess.whenAccess('settings/describe', () =>
-    ctx.slots.inject('sidebar.settings', () => {
-      const shellHandle = createSettingsShellStore()
-      const shellInstance = shellHandle.create()
-      const shellStore: typeof shellHandle = { ...shellHandle, create: () => shellInstance }
-      const disposeCommand = ctx.shortcuts.register({
-        id: 'settings.open' as ShortcutCommandId, label: () => t('shortcut.open'), aliases: ['settings', 'preferences'],
-        defaults: {
-          'desktop:macos': { code: 'Comma', modifiers: ['primary'] },
-          'desktop:windows': { code: 'Comma', modifiers: ['primary'] },
-          'desktop:linux': { code: 'Comma', modifiers: ['primary'] },
-          'web:macos': { code: 'Comma', modifiers: ['primary', 'alt'] },
-          'web:windows': { code: 'Comma', modifiers: ['primary', 'alt'] },
-        },
-        regions: ['page', 'editable', 'terminal'], modals: ['settings'],
-        resolve: ({ modal }) => {
-          if (modal !== null && modal !== 'settings') return { status: 'blocked', reason: 'modal' }
-          return { status: 'handled', run: () => {
-            if (modal === 'settings') closeTopModal(document)
-            else shellInstance.actions.open()
-          } }
-        },
-      })
+  const registerSettings = () => ctx.slots.inject('sidebar.settings', () => {
+    const shellHandle = createSettingsShellStore()
+    const shellInstance = shellHandle.create()
+    const shellStore: typeof shellHandle = { ...shellHandle, create: () => shellInstance }
+    const disposeCommand = ctx.shortcuts.register({
+      id: 'settings.open' as ShortcutCommandId, label: () => t('shortcut.open'), aliases: ['settings', 'preferences'],
+      defaults: {
+        'desktop:macos': { code: 'Comma', modifiers: ['primary'] },
+        'desktop:windows': { code: 'Comma', modifiers: ['primary'] },
+        'desktop:linux': { code: 'Comma', modifiers: ['primary'] },
+        'web:macos': { code: 'Comma', modifiers: ['primary', 'alt'] },
+        'web:windows': { code: 'Comma', modifiers: ['primary', 'alt'] },
+      },
+      regions: ['page', 'editable', 'terminal'], modals: ['settings'],
+      resolve: ({ modal }) => {
+        if (modal !== null && modal !== 'settings') return { status: 'blocked', reason: 'modal' }
+        return { status: 'handled', run: () => {
+          if (modal === 'settings') closeTopModal(document)
+          else shellInstance.actions.open()
+        } }
+      },
+    })
 
-      const disposeSlot = ctx.slots.register({
-        name: 'sidebar.settings',
-        locale: NS,
-        store: shellStore,
-        children: {
-          'settings.launcher': { kind: 'single', scope: 'root' },
-          'settings.trigger': { kind: 'single', scope: 'root' },
-          'settings.header': { kind: 'single', scope: 'root' },
-          'settings.action': { kind: 'list', scope: 'root' },
-          'settings.close': { kind: 'single', scope: 'root' },
-          'settings.section': { kind: 'list', scope: 'root' },
-          'settings.section.icon': { kind: 'list', scope: 'root', inline: true },
-          'settings.onboarding': { kind: 'list', scope: 'root' },
-        },
-        inject: shellInjected,
-      }, SettingsRoot)
-      return () => { disposeCommand(); disposeSlot() }
-    }))
+    const serverInjected = (): ServerConnectionInjected => {
+      if (server === undefined) throw new Error('Native server settings are unavailable')
+      return { configure: async (address, token) => { await server.configure(address, token); return server.getSnapshot().phase === 'connected' }, retry: server.retry, dismiss: server.dismissConfiguration,
+        openSettings: () => { shellInstance.actions.openSection('server') },
+        hooks: { serverState: server, connectionState: connection.state } }
+    }
+    const disposePrompt = server === undefined ? () => {} : ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+      name: 'shell.overlay', id: 'server-connection', locale: 'settings.server', inject: serverInjected,
+    }, ServerConnectionPrompt))
+    const disposeServer = server === undefined ? () => {} : ctx.slots.inject('settings.section', () => ctx.slots.register({
+      name: 'settings.section', id: 'server', order: -20, locale: 'settings.server',
+      label: () => ctx.locale.bind('settings.server')('title'), inject: serverInjected,
+    }, ServerConnectionSection))
+    const disposeSlot = ctx.slots.register({
+      name: 'sidebar.settings',
+      locale: NS,
+      store: shellStore,
+      children: {
+        'settings.launcher': { kind: 'single', scope: 'root' },
+        'settings.trigger': { kind: 'single', scope: 'root' },
+        'settings.header': { kind: 'single', scope: 'root' },
+        'settings.action': { kind: 'list', scope: 'root' },
+        'settings.close': { kind: 'single', scope: 'root' },
+        'settings.section': { kind: 'list', scope: 'root' },
+        'settings.section.icon': { kind: 'list', scope: 'root', inline: true },
+        'settings.onboarding': { kind: 'list', scope: 'root' },
+      },
+      inject: shellInjected,
+    }, SettingsRoot)
+    return () => { disposeServer(); disposePrompt(); disposeCommand(); disposeSlot() }
+  })
+  if (server === undefined) ctx.remoteAccess.whenAccess('settings/describe', registerSettings)
+  else registerSettings()
 
   ctx.slots.inject('settings.trigger', () =>
     ctx.slots.register({ name: 'settings.trigger', locale: NS }, TriggerContent))

@@ -107,6 +107,9 @@
     },
     {
       "path": "../ui-context-menu"
+    },
+    {
+      "path": "../connection/tsconfig.client.json"
     }
   ],
   "exclude": [

@@ -17,7 +17,7 @@ try {
   await cp(join(www, 'index.html'), join(www, '_ios/original-index.html'))
   for (const name of ['stage', 'appearance']) await cp(join(inventory, 'wiki', name), join(www, name), { recursive: true })
   await cp(join(inventory, 'plugins'), join(www, '_ios/plugins'), { recursive: true })
-  for (const name of ['notices', 'manifest.json']) await cp(join(inventory, name), join(www, name), { recursive: true })
+  for (const name of ['notices', 'manifest.json', 'bootstrap.json']) await cp(join(inventory, name), join(www, name), { recursive: true })
   await cp(join(app, 'renderer'), www, { recursive: true })
   await build({ entry: [join(app, 'src/carrier.ts')], outDir: join(www, '_ios'), format: 'iife', platform: 'browser', target: 'safari18.4', deps: { alwaysBundle: ['@deepseek-ai/dsh-util-crypto', '@deepseek-ai/dsh-brand'] }, config: false, clean: false })
   await build({ entry: [join(app, 'src/connect.ts')], outDir: www, format: 'iife', platform: 'browser', target: 'safari18.4', config: false, clean: false })

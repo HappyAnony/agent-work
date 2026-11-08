@@ -7,7 +7,7 @@
   "server": {
     "hostname": "app",
     "iosScheme": "dsh-app",
-    "appStartPath": "connect.html"
+    "appStartPath": "index.html"
   },
   "ios": {
     "contentInset": "never",

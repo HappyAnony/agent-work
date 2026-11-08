@@ -30,6 +30,7 @@ function fixture(withProof = true) {
   const plugin: NativeAgentWork = {
     request, socket: open, cancel, send, close,
     state: async () => ({ serverUrl: '' }), connect: async () => {}, failed: async () => {},
+    localBootstrap: async () => ({ injections: [] }),
     bootstrap: async () => ({ injections: [], streamBaseUrl: 'https://server.test' }),
   }
   const originalFetch = vi.fn(async () => new Response('static'))
@@ -115,4 +116,19 @@ describe('iOS local transport', () => {
       expect(ws.readyState).toBe(3); expect(closed.mock.calls[0]![0].wasClean).toBe(false)
     } finally { app.dispose() }
   })
+})
+
+it('boots the local interface without authentication and reports connection separately', async () => {
+  const app = fixture()
+  try {
+    const boot = app.window.dshDesktopBoot as { ready(): Promise<{ injections: object[]; streamBaseUrl: string; ownsHost: boolean }> }
+    const server = app.window.agentworkServer as {
+      state(): Promise<{ serverUrl: string }>
+      connect(address: string, token: string): Promise<{ ok: boolean; injections: object[] }>
+    }
+    const ready = await boot.ready()
+    expect(ready).toEqual({ injections: [], streamBaseUrl: '', ownsHost: false })
+    expect(await server.state()).toEqual({ serverUrl: '' })
+    expect(await server.connect('https://server.test', '')).toEqual({ ok: true, injections: [] })
+  } finally { app.dispose() }
 })

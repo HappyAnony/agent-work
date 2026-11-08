@@ -26,7 +26,11 @@
     },
     "./src/*": "./src/*",
     "./package.json": "./package.json",
-    "./locale/*.json": "./locale/*.json"
+    "./locale/*.json": "./locale/*.json",
+    "./packaged-server": {
+      "types": "./lib/types/packaged-server.d.ts",
+      "default": "./lib/packaged-server.js"
+    }
   },
   "dsh": {
     "client": {
@@ -46,7 +50,8 @@
     "lib/index.js",
     "lib/client.browser.js",
     "lib/client.node.js",
-    "lib/types/**/*.d.ts"
+    "lib/types/**/*.d.ts",
+    "lib/packaged-server.js"
   ],
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

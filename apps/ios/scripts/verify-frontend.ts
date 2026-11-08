@@ -16,7 +16,7 @@ export async function verifyPackagedModules(root: string): Promise<void> {
     const bytes = await readFile(join(root, '_ios/plugins', name, 'client.js'))
     if (createHash('sha256').update(bytes).digest('hex') !== digest) throw new Error('Packaged iOS module is incomplete: ' + name)
   }
-  for (const path of ['_ios/carrier.js', '_ios/original-index.html', 'connect.html', 'connect.js', 'connect.css', 'stage/build/portable/boot.js']) {
+  for (const path of ['bootstrap.json', '_ios/carrier.js', '_ios/original-index.html', 'connect.html', 'connect.js', 'connect.css', 'stage/build/portable/boot.js']) {
     await access(join(root, path))
   }
 }

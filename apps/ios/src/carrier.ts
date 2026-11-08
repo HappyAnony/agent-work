@@ -125,8 +125,22 @@ if (location.protocol === 'dsh-app:' && location.hostname === 'app') {
   if (window === window.top && location.pathname !== '/connect.html') {
     Object.assign(window, {
       __DSH_BOOT_READY__: Promise.withResolvers<void>(),
+      agentworkServer: {
+        state: () => nativeAgentWork().state(),
+        connect: async (address: string, token: string) => {
+          try {
+            await nativeAgentWork().connect({ serverUrl: address, token })
+            const result = await nativeAgentWork().bootstrap()
+            return { ok: true, injections: result.injections }
+          } catch (error) {
+            const code = error !== null && typeof error === 'object' && 'message' in error && typeof error.message === 'string' ? error.message : ''
+            const failures: Record<string, string> = { server_address: 'address', authentication: 'authentication', certificate: 'certificate', frontend_version: 'version', frontend_resource: 'version' }
+            return { ok: false, failure: failures[code] ?? 'network' }
+          }
+        },
+      },
       dshDesktopBoot: {
-        ready: async () => ({ ...await nativeAgentWork().bootstrap(), ownsHost: false }),
+        ready: async () => ({ ...await nativeAgentWork().localBootstrap(), streamBaseUrl: '', ownsHost: false }),
         failed: (message: string) => nativeAgentWork().failed({ message }),
       },
     })

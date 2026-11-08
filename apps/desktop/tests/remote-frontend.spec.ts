@@ -4,9 +4,15 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, it, onTestFinished } from 'vitest'
-import { RemoteFrontend, readRemoteBootstrap, remoteServerOrigin } from '../src/remote-frontend.ts'
+import { RemoteFrontend, decryptRemoteCookie, readRemoteBootstrap, remoteServerOrigin } from '../src/remote-frontend.ts'
 
 const hash = (value: string) => createHash('sha256').update(value).digest('hex')
+
+it('requires fresh authentication when the saved native credential cannot be decrypted', () => {
+  expect(() => decryptRemoteCookie('ciphertext', () => { throw new Error('key unavailable') }))
+    .toThrow('remote-authentication-required')
+  expect(decryptRemoteCookie('ciphertext', () => 'test-cookie')).toBe('test-cookie')
+})
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'agentwork-remote-assets-'))
@@ -19,12 +25,14 @@ async function fixture() {
   await Promise.all([writeFile(join(root, 'web/index.html'), index), writeFile(join(root, 'plugins/@test/plugin/client.js'), bundle),
     writeFile(join(root, 'wiki/stage/build/portable/boot.js'), 'wiki'),
     writeFile(join(root, 'wiki/stage/build/portable/index.html'), '<body>Local Wiki</body>'),
-    writeFile(join(root, 'manifest.json'), JSON.stringify(manifest))])
+    writeFile(join(root, 'manifest.json'), JSON.stringify(manifest)),
+    writeFile(join(root, 'bootstrap.json'), JSON.stringify({ ...manifest, defaultServerUrl: 'http://127.0.0.1:18686', injections: [] }))])
   return { root, manifest, frontend: await RemoteFrontend.load(root) }
 }
 
 it('loads the shell, plugin factories and Wiki editor locally while delegating backend requests', async () => {
   const { frontend, manifest } = await fixture()
+  expect(await frontend.localBootstrap()).toMatchObject({ defaultServerUrl: 'http://127.0.0.1:18686', injections: [] })
   await frontend.verify({ ...manifest, injections: [] })
   expect(await (await frontend.resource(new Request('dsh-app://app/')))?.text()).toContain('Local frontend')
   expect(await (await frontend.resource(new Request('dsh-app://app/plugins/??@test/plugin/client.js&rev=server')))?.text()).toContain('localPlugin')

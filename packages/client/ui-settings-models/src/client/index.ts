@@ -81,7 +81,8 @@ export function apply(ctx: ClientContext): void {
   const configured = Config(payload === undefined ? {} : payload)
   const nativeOnboarding = 'dshDesktop' in globalThis &&
     (globalThis as { __DSH_TRANSPORT__?: { ownsHost?: boolean } }).__DSH_TRANSPORT__?.ownsHost !== false
-  const credentialOnboarding = configured.credentialOnboarding && !nativeOnboarding
+  const packaged = (globalThis as { __DSH_TRANSPORT__?: { server?: object } }).__DSH_TRANSPORT__?.server !== undefined
+  const credentialOnboarding = configured.credentialOnboarding && !nativeOnboarding && !packaged
   ctx.effect(() => ctx.locale.register(NS, { zh, en, ja, es, fr, de, ru, pt }), 'ui-settings-models: copy dictionaries')
 
   const schema = createSettingsSchemaOperations(ctx.settingsSchema)
@@ -146,7 +147,7 @@ export function apply(ctx: ClientContext): void {
       'settings.models.footer': { kind: 'list', scope: 'root' },
     },
   }, ModelsSection))
-  if (!nativeOnboarding) ctx.slots.inject('settings.onboarding', () => ctx.slots.register({
+  if (!nativeOnboarding && !packaged) ctx.slots.inject('settings.onboarding', () => ctx.slots.register({
     name: 'settings.onboarding',
     id: 'welcome-notice',
     order: -100,

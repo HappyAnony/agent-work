@@ -23,7 +23,7 @@ export function ConversationContent(props: ConversationContentProps) {
   const {
     sessionId, phase, hero, useSession, useSessions, useSessionStatus,
     useWorkspaces, useInput, useComposerBlock, renderSlot, renderSlotChain,
-    selectWorkspace, t, useFactorySlot,
+    selectWorkspace, requireServer, t, useFactorySlot,
   } = props
   const session = useSession(snapshot => snapshot)
   const Views = useFactorySlot('views', ConversationSessionView)
@@ -113,7 +113,7 @@ export function ConversationContent(props: ConversationContentProps) {
         buttonRef={pickerAnchor}
         label={chipTitle}
         menuOpen={pickerOpen}
-        onClick={() => { setPickerOpen(open => !open) }}
+        onClick={() => { if (requireServer?.() !== false) setPickerOpen(open => !open) }}
         t={t}
       />
       {renderSlot('conversation.hero.workspace', {
@@ -151,7 +151,7 @@ export function ConversationContent(props: ConversationContentProps) {
         disabled: true,
         placeholder: t('placeholder.workspace'),
         workspacePickerOpen: pickerOpen,
-        onRequestWorkspace: () => { setPickerOpen(true) },
+        onRequestWorkspace: () => { if (requireServer?.() !== false) setPickerOpen(true) },
       }
       : blocked
         // `blocked`, not `disabled`: the bar refuses input either way, but a

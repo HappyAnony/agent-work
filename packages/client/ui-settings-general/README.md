@@ -112,6 +112,8 @@ These pages cover the settings surface family and the composition model.
 
 -----
 
+Packaged AgentWork keeps Settings available without backend access. Service connection displays native authentication and transport status, offers configuration and retry, and owns the single prompt for backend-dependent actions. Model credentials remain in the Models section.
+
 <a id="model-experience"></a>
 ## Model Experience
 

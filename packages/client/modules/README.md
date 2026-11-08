@@ -125,6 +125,8 @@ Read these when the module contract is not enough: the subsystem reference, the 
 
 -----
 
+Native carriers verify bundle digests against their installed inventory before using `entries.syncPackaged`. That method retains the local startup composition and preserves loaded module revisions for identical verified bytes, so authentication does not replace the shell or its drafts. Ordinary Web graph updates retain release and revision checks.
+
 <a id="model-experience"></a>
 ## Model Experience
 

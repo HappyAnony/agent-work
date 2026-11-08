@@ -1,0 +1,11 @@
+.section { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.section h2 { margin: 0; font-size: 18px; font-weight: 500; }
+.section p { margin: 0; color: var(--dsw-alias-label-secondary); line-height: 1.6; overflow-wrap: anywhere; }
+.form { display: flex; flex-direction: column; gap: 10px; }
+.form label { color: var(--dsw-alias-label-primary); }
+.form input { box-sizing: border-box; width: 100%; min-width: 0; padding: 10px 12px; border: 0.5px solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-sm); background: var(--dsw-alias-bg-base); color: var(--dsw-alias-label-primary); font: inherit; }
+.form input:focus-visible { outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary)); outline-offset: 2px; }
+.section .failure { color: var(--dsw-alias-state-error-primary); }
+.section .status { color: var(--dsw-alias-label-primary); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (pointer: coarse) { .form input { font-size: 16px; } }

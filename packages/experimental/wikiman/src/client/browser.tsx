@@ -1,6 +1,7 @@
 /** Browser entry for the WikiMan panel, editor overlay and citation button. */
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
+import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
@@ -14,6 +15,7 @@ import type { WikiDocument } from '../types.ts'
 import { WikiWorkArea, type EditorActions, type WikiTarget, type WorkbenchSnapshot } from './work-area.tsx'
 import { en, zh } from './locales.ts'
 import { WikiPanel, type PanelActions } from './panel.tsx'
+import css from './wiki.module.css'
 import { PortableEditor } from './portable-workbench.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -24,7 +26,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 
 /** Browser services supplying the panel, editor and recorded citation row. */
-export const inject = ['remote', 'slots', 'locale', 'layout']
+export const inject = ['remote', 'slots', 'locale', 'layout', 'connection']
 
 const panelId = 'wikiman' as MainPanelId
 
@@ -64,11 +66,52 @@ async function unwrap<T>(result: Promise<RemoteResult<T>>): Promise<T> {
  * @param ctx - the browser plugin context.
  * @returns the disposer that releases the contributions.
  */
+function DisconnectedWiki({ t, configure }: PropsLocale<'wikiman'> & InjectFace<{ configure(this: void): void }>) {
+  return <section className={css.page}><header className={css.heading}><h1>{t('title')}</h1></header>
+    <div className={css.list}><p>{t('serviceRequired')}</p><Button onClick={configure}>{t('configureService')}</Button></div></section>
+}
+
+/** Install local navigation immediately; authenticate before creating any editor leases.
+ * @param ctx - Browser plugin context.
+ * @returns Disposer retaining editors until save queues finish.
+ */
 export async function apply(ctx: Context): Promise<() => Promise<void>> {
+  const connection = ctx.get('connection') as ConnectionHandle
+  const server = connection.server
+  if (server === undefined) return mountWorkbench(ctx)
+  ctx.effect(() => ctx.locale.register('wikiman', { en, zh }), 'wikiman: local locale')
+  const t = ctx.locale.bind('wikiman')
+  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+    name: 'sidebar.panellist', id: panelId, order: 12, locale: 'wikiman', label: () => t('title'),
+  }, Icon))
+  let placeholder: (() => void) | undefined = ctx.slots.inject('main', () => ctx.slots.register({
+    name: 'main', key: panelId, locale: 'wikiman', inject: () => ({ configure: server.requestConfiguration }),
+  }, DisconnectedWiki))
+  let active: Promise<() => Promise<void>> | undefined
+  let stopped = false
+  const activate = () => {
+    if (stopped || active !== undefined || connection.state.getSnapshot() !== 'connected') return
+    placeholder?.(); placeholder = undefined
+    active = mountWorkbench(ctx).catch((error: unknown) => {
+      ctx.logger.error(error)
+      active = undefined
+      if (!stopped) placeholder = ctx.slots.inject('main', () => ctx.slots.register({
+        name: 'main', key: panelId, locale: 'wikiman', inject: () => ({ configure: server.requestConfiguration }),
+      }, DisconnectedWiki))
+      return async () => {}
+    })
+  }
+  const unsubscribe = connection.state.subscribe(activate)
+  activate()
+  return async () => { stopped = true; unsubscribe(); placeholder?.(); const dispose = await active; await dispose?.() }
+}
+
+async function mountWorkbench(ctx: Context): Promise<() => Promise<void>> {
+  const connection = ctx.get('connection') as ConnectionHandle
   const unmount = await ctx.remote.$mount(remote)
   const ui = ctx.inject(['remote.wikiman'], async (scope) => {
     const runtime = await unwrap(scope.remote.wikiman.runtime())
-    scope.effect(() => scope.locale.register('wikiman', { en, zh }), 'wikiman: locale')
+    if (connection.server === undefined) scope.effect(() => scope.locale.register('wikiman', { en, zh }), 'wikiman: locale')
     const t = scope.locale.bind('wikiman')
     let snapshot: WorkbenchSnapshot = { target: null, anchor: null, changed: false }
     const subscribers = new Set<() => void>()
@@ -114,6 +157,16 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       await opening.catch((_error: unknown) => { /* Selection failures are reported by the work area. */ })
       await portable.dispose()
     }, 'wikiman: portable workbench')
+    scope.on('connection/before-server-change', async () => {
+      await portable.release(() => Promise.resolve())
+      select(null)
+    })
+    const guardedSelect = (target: WikiTarget | null) => {
+      if (target !== null && connection.server !== undefined && (connection.server.getSnapshot().phase !== 'connected' || connection.state.getSnapshot() !== 'connected')) {
+        connection.server.requestConfiguration(); return
+      }
+      select(target)
+    }
     const editor: EditorActions = {
       runtime,
       portable,
@@ -146,7 +199,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       },
       getSnapshot: () => snapshot,
       subscribe: (listener) => { subscribers.add(listener); return () => { subscribers.delete(listener) } },
-      select,
+      select: guardedSelect,
       open: (target, signal) => {
         if (runtime === 'siyuan') {
           const reference = target.kind === 'document' ? target.document : null
@@ -181,14 +234,14 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       change: (request, signal) => unwrap(scope.remote.wikiman.changePage(request, signal)),
       importLibrary: (request, confirmation, signal) => unwrap(scope.remote.wikiman.importLibrary(request, confirmation, signal)),
       syncLibrary: signal => unwrap(scope.remote.wikiman.syncLibrary(signal)),
-      select,
+      select: guardedSelect,
       attach: (anchor) => { if (snapshot.anchor !== anchor) update({ ...snapshot, anchor }) },
     }
     const openCitation = (document: WikiDocument) => {
       select({ kind: 'document', document })
       scope.layout.selectPanel(panelId)
     }
-    scope.slots.inject('sidebar.panellist', () => scope.slots.register({
+    if (connection.server === undefined) scope.slots.inject('sidebar.panellist', () => scope.slots.register({
       name: 'sidebar.panellist', id: panelId, order: 12, locale: 'wikiman', label: () => t('title'),
     }, Icon))
     scope.slots.inject('main', () => scope.slots.register({

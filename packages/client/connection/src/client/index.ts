@@ -14,6 +14,9 @@ import type { ClientConnectionRpc } from '../rpc.ts'
 import { resolveConnectionConfig } from '../recovery-config.ts'
 import type { ConnectionInteractions } from '../connect-protocol.ts'
 import { openConnectionWebSocket, type ConnectionWebSocket, type ConnectionWebSocketFactory } from './socket.ts'
+import type { PackagedServerConnection } from '../packaged-server.ts'
+export { PackagedServer, PackagedServerError } from '../packaged-server.ts'
+export type { PackagedServerConnection, PackagedServerDriver, PackagedServerSnapshot, PackagedServerBootstrap, ServerFailure } from '../packaged-server.ts'
 
 export type { ConnectionInteractions } from '../connect-protocol.ts'
 export type { ConnectionWebSocket, ConnectionWebSocketFactory } from './socket.ts'
@@ -26,6 +29,11 @@ declare module '@deepseek-ai/cordis' {
      * @mode emit
      */
     'connection/reset'(): void
+    /**
+     * Drain user edits before the native carrier replaces its selected server. Failure blocks the change.
+     * @mode serial
+     */
+    'connection/before-server-change'(): Promise<void>
   }
 }
 
@@ -82,6 +90,8 @@ export const inject: string[] = []
  * halves instead of forking this plugin.
  */
 export interface ClientTransportHooks {
+  /** Native server selection and settings, available while disconnected; absent in served Web pages. */
+  server?: PackagedServerConnection
   /**
    * Already decoded logical RPC carrier. When present it replaces the HTTP
    * caller outright: no envelopes, no `fetch`, no `openStream` (an in-process
@@ -147,6 +157,8 @@ export interface ConnectionInstallOptions {
  * and reset callbacks; Connection stays independent of downstream domain state.
  */
 export interface ConnectionHandle {
+  /** Device-local server configuration; absent when the browser's origin selects its Host. */
+  readonly server?: PackagedServerConnection
   /** Forwarded-event participation selected at installation. */
   readonly interactions: ConnectionInteractions
   /**
@@ -269,6 +281,7 @@ export function installConnection(ctx: Context, options: ConnectionInstallOption
     publishState(undefined)
   }
   const handle: ConnectionHandle = {
+    ...transport?.server === undefined ? {} : { server: transport.server },
     interactions,
     openWebSocket: path => openConnectionWebSocket(path, transport?.createWebSocket, transport?.streamBaseUrl),
     isLoopback: transport?.ownsHost === true || pageLocation === undefined || isLoopbackHostname(pageLocation.hostname),

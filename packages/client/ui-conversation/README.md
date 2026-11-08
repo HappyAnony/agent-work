@@ -196,6 +196,8 @@ The selector must be a pure function of the owner currency. Its non-null return 
 
 Session title context gestures use the shared [context menu](../ui-context-menu/README.md) with the clicked breadcrumb’s Session. The reusable image gallery receives `getTriggerProps` from its Factory’s injected `useContextMenu` hook.
 
+Packaged clients refuse submission and workspace selection while their server is unavailable, retain the draft, and request the device-local service settings prompt. This check does not change the connected Peer’s permissions.
+
 <a id="model-experience"></a>
 ## Model Experience
 

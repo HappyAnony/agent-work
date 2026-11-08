@@ -60,11 +60,13 @@ export class InputHub implements SessionInputResolver {
 
   /**
    * @param ctx - client root context (services resolved lazily per call — boot order stays free).
+   * @param requireServer - Checks device-local connectivity without consuming an unsent draft.
    * @param t - conversation-namespace translate thunk (reads the active locale at call time).
    */
   constructor(
     private readonly rootCtx: Context,
     private readonly t: TranslateNS<'conversation'>,
+    private readonly requireServer: () => boolean = () => true,
   ) {}
 
   /**
@@ -102,6 +104,7 @@ export class InputHub implements SessionInputResolver {
     const { session, ctx: actx } = binding
     const shell = new SessionInputShell({
       actx,
+      requireServer: this.requireServer,
       submissionState: () => {
         const state = session.getSnapshot()
         const model = session.projections.faceOf('modelSelection').getSnapshot() as ModelSelectionProjection | undefined

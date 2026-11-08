@@ -5,6 +5,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { allowAllAccess, bindSnapshotSelector, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import type { GeneralSectionComponentProps } from '../src/client/GeneralSection.tsx'
+import { PackagedServer, PackagedServerError } from '@deepseek-ai/dsh-client-connection/packaged-server'
+import { ServerConnectionSection, ServerConnectionPrompt } from '../src/client/ServerConnection.tsx'
+import { serverEn } from '../src/client/server-locales.ts'
 import { GeneralSection } from '../src/client/GeneralSection.tsx'
 import { CloseLabel, HeaderContent, TriggerContent } from '../src/client/chrome.tsx'
 import type { TriggerContentProps } from '../src/client/chrome.tsx'
@@ -432,4 +435,31 @@ it('labels uncertain settings saves without claiming they were not written', () 
 it('does not describe a saved selection that failed to apply as unsaved', () => {
   expect(zh['desktop.channel.result.apply']).toBe('设置保存异常')
   expect(en['desktop.channel.result.apply']).toBe('Settings save error')
+})
+
+it('shows server failure, keeps the entered credential on failure and offers one configuration prompt', async () => {
+  const server = new PackagedServer({ readAddress: async () => '', connect: async () => { throw new PackagedServerError('certificate') } }, '')
+  const openSettings = vi.fn()
+  const props = { ...kit,
+    t: ((key: keyof typeof serverEn) => serverEn[key]) as Parameters<typeof ServerConnectionSection>[0]['t'],
+    configure: async (address: string, token: string) => { await server.configure(address, token); return server.getSnapshot().phase === 'connected' },
+    retry: server.retry, dismiss: server.dismissConfiguration, openSettings,
+    useServerState: bindSnapshotSelector(server),
+    useConnectionState: bindSnapshotSelector({ getSnapshot: () => 'disconnected' as const, subscribe: () => () => {} }),
+  }
+  try {
+    render(<><ServerConnectionSection {...props} /><ServerConnectionPrompt {...props} /></>)
+    expect(screen.getByText(serverEn.unconfigured)).toBeTruthy()
+    fireEvent.change(screen.getByLabelText(serverEn.address), { target: { value: 'https://server.test' } })
+    fireEvent.change(screen.getByLabelText(serverEn.token), { target: { value: 'test-credential' } })
+    fireEvent.click(screen.getByText(serverEn.connect))
+    await screen.findByText(serverEn.certificate)
+    expect(screen.getByRole('alert').textContent).toMatchInlineSnapshot('"The server certificate could not be verified. Check its trust, hostname and expiry."')
+    expect(screen.getByLabelText(serverEn.token)).toHaveProperty('value', 'test-credential')
+    act(() => { server.requestConfiguration(); server.requestConfiguration() })
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    fireEvent.click(screen.getByText(serverEn.configure))
+    expect(openSettings).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog')).toBeNull()
+  } finally { server.dispose() }
 })

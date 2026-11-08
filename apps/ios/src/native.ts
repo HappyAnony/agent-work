@@ -17,6 +17,7 @@ export interface NativeError { message: string }
 export interface NativeAgentWork {
   state(): Promise<{ serverUrl: string }>
   connect(options: { serverUrl: string; token: string }): Promise<void>
+  localBootstrap(): Promise<{ injections: Record<string, unknown>[] }>
   bootstrap(): Promise<{ injections: Record<string, unknown>[]; streamBaseUrl: string }>
   failed(options: { message: string }): Promise<void>
   request(options: Payload, callback: (event: NativeEvent | null, error?: NativeError) => void): string
@@ -45,6 +46,7 @@ export function nativeAgentWork(): NativeAgentWork {
   if (plugin === undefined || nonce === undefined) throw new Error('native_bridge')
   return {
     state: () => plugin.state({ nonce }), connect: options => plugin.connect({ ...options, nonce }),
+    localBootstrap: () => plugin.localBootstrap({ nonce }),
     bootstrap: () => plugin.bootstrap({ nonce }), failed: options => plugin.failed({ ...options, nonce }),
     request: (options, callback) => plugin.request({ ...options, nonce }, callback),
     cancel: options => plugin.cancel({ ...options, nonce }),

@@ -5,6 +5,7 @@
  * point after the activation audit accepts the client tree.
  * @module @deepseek-ai/dsh-client-web/src/boot
  */
+import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
 import { Context } from '@deepseek-ai/cordis'
 import type {
   BootManifest, ClientModuleCreateOptions, ClientModuleSystem, DshWindow,
@@ -114,6 +115,31 @@ export class AppWebEntry {
     this.ctx = undefined
     if (ctx !== undefined) await ctx.fiber.dispose()
     this.page.dispose()
+  }
+
+  /** Drain unsaved editor queues before changing native authority. @returns Safe-to-switch settlement. */
+  async preparePackagedConnection(): Promise<void> {
+    await this.ctx?.serial('connection/before-server-change')
+    const connection = this.ctx?.get('connection') as ConnectionHandle | undefined
+    connection?.reconnect()
+  }
+
+  /**
+   * Apply authenticated public globals and a native-verified client graph in the mounted document.
+   * @param globals - Public Host startup values, without executable rows or credentials.
+   * @param graph - Graph verified against the application's packaged resource inventory.
+   * @returns Completion of plugin reconciliation and physical reconnection.
+   */
+  async connectPackaged(globals: Readonly<Record<string, unknown>>, graph: unknown): Promise<void> {
+    if (this.ctx === undefined) throw new Error('web boot: client is not mounted')
+    for (const [name, value] of Object.entries(globals)) {
+      if (name !== '__DSH_BOOT__' && name !== '__ModuleLoader__' && name !== '__DSH_BOOT_READY__') {
+        (globalThis as Record<string, unknown>)[name] = value
+      }
+    }
+    await this.modules.entries.syncPackaged(graph, ['@deepseek-ai/dsh-client-hmr', '@deepseek-ai/dsh-client-ui-settings-account'])
+    const connection = this.ctx.get('connection') as ConnectionHandle | undefined
+    connection?.reconnect()
   }
 
   /** Prefetch stage-one bundles and their dynamic requests before concurrent plugin imports. */

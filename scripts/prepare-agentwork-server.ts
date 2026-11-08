@@ -42,6 +42,8 @@ await cli(['--profile', values.profile, '--from-default-profile', 'web', '--dump
 await cli(['plugin', '--profile', values.profile, 'add', '--workspace-root', 'link:./packages/experimental/wikiman'])
 await writeFile(join(profile, 'cordis.patch.yml'), JSON.stringify([
   { id: 'session-log-deepseek', disabled: true },
+  { id: 'ui-settings-account', disabled: true },
+  { id: 'ui-settings-models', config: { credentialOnboarding: false } },
   { id: 'directory-picker', name: '@deepseek-ai/dsh-host-directory-picker-browse', config: {} },
   { insert: [{ id: 'wikiman', name: '@deepseek-ai/dsh-wikiman', config: {
     runtime: 'portable', kernelPath: join(runtime, 'bin/wiki-kernel'), appDir: join(runtime, 'wiki-app'), sourceRoot, workspaceRoot,

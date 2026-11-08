@@ -39,9 +39,9 @@ Open `apps/ios/ios/App/App.xcodeproj` in Xcode, select the App target, choose yo
 <a id="connect"></a>
 ## Connect
 
-Enter a trusted root HTTPS server address and the access token from its launch link. The native process exchanges the token for a server cookie, verifies the packaged frontend fingerprints and saves the credential in the device Keychain. Later connections to the same address can leave the token empty. The interface receives neither the cookie nor a local backend.
+The app opens its complete packaged interface immediately and attempts the saved server in the background. Open **Settings → Service connection** to enter a trusted root HTTPS server address and the access token from its launch link. The native process exchanges the token for a server cookie, verifies the packaged frontend fingerprints and saves the credential in the device Keychain. Later connections to the same address can leave the token empty. The interface receives neither the cookie nor a local backend. DeepSeek account sign-in and automatic credential onboarding are hidden; configure model API keys under **Settings → Models** after connecting.
 
-The phone must reach the server through its LAN or VPN. A private certificate authority requires an installed profile and full root trust on the phone. Certificate chain, expiry and hostname validation remain enabled. Client and server frontend versions must match; rebuild this app when Web, plugin or Wiki resources change. Connection failure keeps the connection form visible.
+The phone must reach the server through its LAN or VPN. A private certificate authority requires an installed profile and full root trust on the phone. Certificate chain, expiry and hostname validation remain enabled. Client and server frontend versions must match; rebuild this app when Web, plugin or Wiki resources change. Connection failure keeps the interface available and marks Service connection as unavailable. Backend-dependent actions offer configuration or retry. A new installation has no default server; the phone uses the manually selected LAN or VPN address.
 
 <a id="runtime-and-limits"></a>
 ## Runtime and limits

@@ -545,7 +545,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ConnectionHandle',
-    declaration: 'export interface ConnectionHandle {\n    readonly interactions: ConnectionInteractions;\n    readonly isLoopback: boolean;\n    readonly generation: ConnectionGenerationState;\n    readonly state: ConnectionStateSource;\n    readonly rpc: ClientConnectionRpc;\n    openWebSocket(path: string): ConnectionWebSocket;\n    reconnect(): void;\n    registerGenerationSource(source: ConnectionGenerationSource): () => void;\n    start(sinks: ConnectionSinks, config?: ConnectionRecoveryConfig): ConnectionLoop;\n}',
+    declaration: 'export interface ConnectionHandle {\n    readonly server?: PackagedServerConnection;\n    readonly interactions: ConnectionInteractions;\n    readonly isLoopback: boolean;\n    readonly generation: ConnectionGenerationState;\n    readonly state: ConnectionStateSource;\n    readonly rpc: ClientConnectionRpc;\n    openWebSocket(path: string): ConnectionWebSocket;\n    reconnect(): void;\n    registerGenerationSource(source: ConnectionGenerationSource): () => void;\n    start(sinks: ConnectionSinks, config?: ConnectionRecoveryConfig): ConnectionLoop;\n}',
   },
   {
     name: 'ConnectionHostInfo',
@@ -768,6 +768,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type OwnerOf<K extends keyof SlotMap & string> = SlotMap[K] extends {\n    owner: infer O extends object;\n} ? O : object;',
   },
   {
+    name: 'PackagedServerBootstrap',
+    declaration: 'export interface PackagedServerBootstrap {\n    readonly globals: Readonly<Record<string, unknown>>;\n    readonly graph: unknown;\n}',
+  },
+  {
+    name: 'PackagedServerConnection',
+    declaration: 'export interface PackagedServerConnection {\n    getSnapshot(): PackagedServerSnapshot;\n    subscribe(listener: () => void): () => void;\n    configure(address: string, token: string): Promise<void>;\n    retry(this: void): Promise<void>;\n    requestConfiguration(this: void): void;\n    dismissConfiguration(this: void): void;\n}',
+  },
+  {
+    name: 'PackagedServerSnapshot',
+    declaration: 'export interface PackagedServerSnapshot {\n    readonly address: string;\n    readonly phase: \'unconfigured\' | \'connecting\' | \'connected\' | \'unavailable\';\n    readonly failure?: ServerFailure;\n    readonly configurationRequested: boolean;\n    readonly bootstrap?: PackagedServerBootstrap;\n}',
+  },
+  {
     name: 'PendingSubmission',
     declaration: 'export interface PendingSubmission {\n    readonly requestId: SessionRequestId;\n    readonly placement: PendingSubmissionPlacement;\n    readonly time: number;\n    readonly text: string;\n    readonly attachments: readonly PendingSubmissionAttachment[];\n}',
   },
@@ -882,6 +894,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ScopeStandardProps',
     declaration: 'export type ScopeStandardProps<S extends SlotScope> = (S extends \'session\' ? SessionStandardProps : S extends \'session-maybe\' ? SessionMaybeStandardProps : object) & GlobalStandardProps;',
+  },
+  {
+    name: 'ServerFailure',
+    declaration: 'export type ServerFailure = \'address\' | \'authentication\' | \'certificate\' | \'version\' | \'network\' | \'unsaved\';',
   },
   {
     name: 'SessionAreaProps',

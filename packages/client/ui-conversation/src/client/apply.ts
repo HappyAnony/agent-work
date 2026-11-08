@@ -1,6 +1,7 @@
 import type {} from '@deepseek-ai/dsh-client-ui-context-menu/client'
 /** Registers the target-neutral Conversation assembly, shell, input, and docks. */
 import type {} from '@deepseek-ai/dsh-client-product-analytics/client'
+import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type { ISessions, SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -160,6 +161,17 @@ export function apply(ctx: Context, config: Config = Config({})): void {
   // Schemastery's field default is materialized before Cordis calls apply.
   const maxConcurrentFileUploads = config.maxConcurrentFileUploads as number
   const workspaceNavigation = ctx.get('uiWorkspace') as WorkspaceNavigation
+  let requireServer = () => true
+  ctx.inject(['connection'], (scope) => {
+    const connection = scope.get('connection') as ConnectionHandle
+    const check = () => {
+      if (connection.server === undefined || connection.server.getSnapshot().phase === 'connected' && connection.state.getSnapshot() === 'connected') return true
+      connection.server.requestConfiguration()
+      return false
+    }
+    requireServer = check
+    scope.effect(() => () => { if (requireServer === check) requireServer = () => true }, 'ui-conversation: native service guard')
+  })
   const uiConversation = new UiConversation(ctx, sessions)
   uiConversation.userText.register(sessionReferenceRule)
   uiConversation.userText.register(collapseWhitespaceRule)
@@ -299,7 +311,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
     }, 'ui-conversation: fixed stop reference')
   })
 
-  const inputHub = new InputHub(ctx, t)
+  const inputHub = new InputHub(ctx, t, () => requireServer())
   const composerBlocks = new ComposerBlockRegistry()
 
   ctx.inject(['commandUi'], (scope) => {
@@ -363,6 +375,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
       hooks: {
         composerBlock: sessionId === undefined ? ABSENT_BLOCK : composerBlocks.storeFor(sessionId),
       },
+      requireServer: () => requireServer(),
       selectWorkspace: workspaceId => workspaceNavigation.openWorkspace(workspaceId, (nextId) => {
         if (sessionId !== undefined && nextId !== sessionId) {
           const from = inputHub.shell(sessionId)

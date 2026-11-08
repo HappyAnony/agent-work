@@ -11,6 +11,7 @@ public final class AgentWorkPlugin: CAPPlugin, CAPBridgedPlugin {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "state", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "connect", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "localBootstrap", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "bootstrap", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "request", returnType: CAPPluginReturnCallback),
         CAPPluginMethod(name: "cancel", returnType: CAPPluginReturnPromise),
@@ -57,6 +58,12 @@ public final class AgentWorkPlugin: CAPPlugin, CAPBridgedPlugin {
                 if generation == self.calls.generation { call.resolve() }
             } catch { if generation == self.calls.generation { call.reject(Self.failure(error)) } }
         }
+    }
+
+    @objc func localBootstrap(_ call: CAPPluginCall) {
+        guard admitted(call) else { return }
+        do { call.resolve(try runtimeResult.get().catalog.localBootstrap()) }
+        catch { call.reject(Self.failure(error)) }
     }
 
     @objc func bootstrap(_ call: CAPPluginCall) {
@@ -166,9 +173,7 @@ public final class AgentWorkPlugin: CAPPlugin, CAPBridgedPlugin {
         Logger(subsystem: "local.agentwork.ios", category: "startup").error("Frontend startup failed: \(diagnostic, privacy: .public)")
         runtimeResult.value?.network.reset()
         call.resolve()
-        DispatchQueue.main.async {
-            self.webView?.load(URLRequest(url: URL(string: "dsh-app://app/connect.html?error=client_startup")!))
-        }
+
     }
 
     func resume() { runtimeResult.value?.network.checkSockets() }

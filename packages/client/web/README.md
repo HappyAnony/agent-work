@@ -110,6 +110,8 @@ Read these when the boot contract is not enough: the module system it boots, the
 
 -----
 
+A packaged carrier can mount its local composition before authentication. `AppWebEntry.connectPackaged` applies public Host globals and a resource-verified graph in the mounted document, then reconnects the transport. The carrier must verify every required artifact before calling it; the local composition grants no backend permissions.
+
 <a id="model-experience"></a>
 ## Model Experience
 

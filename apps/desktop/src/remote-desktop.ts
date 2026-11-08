@@ -5,24 +5,25 @@ import { fileURLToPath } from 'node:url'
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, safeStorage, session, shell } from 'electron'
 import { z } from 'zod'
 import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
-import { RemoteClientError, RemoteFrontend, readRemoteBootstrap, remoteBootstrapSchema, remoteServerOrigin } from './remote-frontend.ts'
+import { RemoteClientError, RemoteFrontend, decryptRemoteCookie, readRemoteBootstrap, remoteBootstrapSchema, remoteServerOrigin } from './remote-frontend.ts'
 import { remoteCopy } from './remote-copy.ts'
-import { forwardWebRequest, serveWebDocument } from './web-document.ts'
+import { forwardWebRequest } from './web-document.ts'
 import { installDesktopShortcuts } from './keyboard.ts'
 import { resolveDesktopLocale } from './locale.ts'
 import { DESKTOP_IPC } from './ipc.ts'
 import { configureRemoteTls } from './remote-tls.ts'
 
-const settingsSchema = z.object({ serverUrl: z.string(), encryptedCookie: z.string().optional() })
+const settingsSchema = z.object({ serverUrl: z.string(), selectedUrl: z.string().optional(), encryptedCookie: z.string().optional() })
 
 /**
- * Open the remote application or its local connection form. Closing it never stops server work.
+ * Open the packaged interface before authenticating the selected server. Closing it never stops server work.
  * @param frontendRoot - Local resource inventory and browser assets.
  * @returns A callback that focuses the surviving application window.
  */
 export async function startRemoteDesktop(frontendRoot: string): Promise<() => void> {
   configureRemoteTls()
   const frontend = await RemoteFrontend.load(frontendRoot)
+  const localBootstrap = await frontend.localBootstrap()
   const copy = remoteCopy(app.getLocale())
   const directory = app.getPath('userData')
   const settingsPath = join(directory, 'remote-server.json')
@@ -39,19 +40,23 @@ export async function startRemoteDesktop(frontendRoot: string): Promise<() => vo
       session: partition, nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true },
   })
   const focus = () => { if (!window.isDestroyed()) { window.show(); window.focus() } }
-  const assertSender = (event: Electron.IpcMainInvokeEvent, host: 'app' | 'shell') => {
+  const assertSender = (event: Electron.IpcMainInvokeEvent) => {
     if (event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame ||
-      !event.senderFrame.url.startsWith(`dsh-app://${host}/`)) throw new Error('remote-client-sender')
+      !event.senderFrame.url.startsWith('dsh-app://app/')) throw new Error('remote-client-sender')
   }
-  const setup = async () => {
-    requests.abort()
-    requests = new AbortController()
-    active = undefined
-    await window.loadURL('dsh-app://shell/remote.html')
+  const setup = () => {
+    window.webContents.send('dsh-remote:configure')
     focus()
   }
   const connect = async (address: string, token?: string) => {
     const serverUrl = remoteServerOrigin(address)
+    const selection = { ...saved, selectedUrl: serverUrl }
+    await mkdir(directory, { recursive: true })
+    await writeFileAtomic(settingsPath, JSON.stringify(selection) + '\n', { mode: 0o600 })
+    saved = selection
+    requests.abort()
+    requests = new AbortController()
+    active = undefined
     const signal = AbortSignal.any([requests.signal, AbortSignal.timeout(15000)])
     let cookie: string
     if (token) {
@@ -62,8 +67,8 @@ export async function startRemoteDesktop(frontendRoot: string): Promise<() => vo
       if (response.status !== 303 || !header) throw new RemoteClientError('remote-authentication')
       cookie = header.split(';')[0] ?? ''
     } else {
-      if (saved.serverUrl !== serverUrl || !saved.encryptedCookie || !safeStorage.isEncryptionAvailable()) throw new RemoteClientError('remote-authentication-required')
-      cookie = safeStorage.decryptString(Buffer.from(saved.encryptedCookie, 'base64'))
+      cookie = saved.serverUrl === serverUrl && saved.encryptedCookie && safeStorage.isEncryptionAvailable()
+        ? decryptRemoteCookie(saved.encryptedCookie, bytes => safeStorage.decryptString(bytes)) : ''
     }
     const response = await fetch(serverUrl + '/api/client/bootstrap', { headers: { cookie }, redirect: 'error', signal })
     if (!response.ok) { await response.body?.cancel(); throw new RemoteClientError('remote-bootstrap', String(response.status)) }
@@ -71,17 +76,15 @@ export async function startRemoteDesktop(frontendRoot: string): Promise<() => vo
     await frontend.verify(bootstrap)
     signal.throwIfAborted()
     if (!safeStorage.isEncryptionAvailable()) throw new RemoteClientError('remote-credential-storage-unavailable')
-    const next = { serverUrl, encryptedCookie: safeStorage.encryptString(cookie).toString('base64') }
+    const next = { serverUrl, selectedUrl: serverUrl, encryptedCookie: safeStorage.encryptString(cookie).toString('base64') }
     await mkdir(directory, { recursive: true })
     await writeFileAtomic(settingsPath, JSON.stringify(next) + '\n', { mode: 0o600 })
     saved = next
     active = { serverUrl, cookie, bootstrap }
-    await window.loadURL('dsh-app://app/')
     focus()
   }
   partition.protocol.handle('dsh-app', async (request) => {
     const url = new URL(request.url)
-    if (url.hostname === 'shell') return serveWebDocument(request, join(app.getAppPath(), 'renderer'))
     if (url.hostname !== 'app') return new Response(null, { status: 404 })
     const local = await frontend.resource(request)
     if (local) return local
@@ -99,37 +102,35 @@ export async function startRemoteDesktop(frontendRoot: string): Promise<() => vo
     callback({ requestHeaders: { ...headers, origin: target.origin, cookie: active.cookie, 'sec-fetch-site': 'same-origin' } })
   })
   partition.setPermissionRequestHandler((_contents, _permission, callback) => { callback(false) })
-  ipcMain.handle('dsh-remote:state', (event) => { assertSender(event, 'shell'); return { copy, serverUrl: saved.serverUrl, locale: app.getLocale() } })
+  ipcMain.handle('dsh-remote:state', (event) => { assertSender(event); return { serverUrl: saved.selectedUrl ?? (saved.serverUrl || localBootstrap.defaultServerUrl) } })
   ipcMain.handle('dsh-remote:connect', async (event, address: unknown, token: unknown) => {
-    assertSender(event, 'shell')
+    assertSender(event)
     if (typeof address !== 'string' || typeof token !== 'string' || connecting) return { ok: false }
     connecting = connect(address, token)
-    try { await connecting; return { ok: true } }
-    catch (error) { console.warn('Remote connection failed:', error instanceof Error ? error.message.replace(/\?.*$/u, '') : 'remote-connection'); return { ok: false } }
+    try { await connecting; return { ok: true, injections: active?.bootstrap.injections } }
+    catch (error) { console.warn('Remote connection failed:', error instanceof Error ? error.message.replace(/\?.*$/u, '') : 'remote-connection'); return { ok: false, failure: connectionFailure(error) } }
     finally { connecting = undefined }
   })
   ipcMain.handle('dsh-remote:boot', (event) => {
-    assertSender(event, 'app')
-    if (!active) throw new Error('remote-client-not-connected')
-    return { injections: active.bootstrap.injections, streamBaseUrl: active.serverUrl, ownsHost: false }
+    assertSender(event)
+    return { injections: localBootstrap.injections, streamBaseUrl: '', ownsHost: false }
   })
   ipcMain.handle('dsh-remote:failed', async (event, message: unknown) => {
-    assertSender(event, 'app')
+    assertSender(event)
     const diagnostic = typeof message === 'string' ? message.slice(0, 8192).replace(/([?&]token=)[^\s&]+/gu, '$1[redacted]') : 'remote-frontend-failed'
     await writeFileAtomic(join(directory, 'remote-client-error.json'), JSON.stringify({ error: diagnostic }) + '\n', { mode: 0o600 })
     await dialog.showMessageBox(window, { type: 'error', title: copy.title, message: copy.failed, detail: diagnostic })
-    await setup()
   })
   ipcMain.on(DESKTOP_IPC.nativeThemeSet, (event, value: unknown) => {
     if (event.sender === window.webContents && ['system', 'light', 'dark'].includes(String(value))) nativeTheme.themeSource = value as 'system' | 'light' | 'dark'
   })
   window.webContents.on('will-navigate', (event, address) => {
     const url = new URL(address)
-    if (url.protocol !== 'dsh-app:' || !['app', 'shell'].includes(url.hostname)) event.preventDefault()
+    if (url.protocol !== 'dsh-app:' || url.hostname !== 'app') event.preventDefault()
   })
   window.webContents.on('page-title-updated', (event, title) => {
     event.preventDefault()
-    window.setTitle(active ? `${title} · ${new URL(active.serverUrl).host}` : copy.title)
+    window.setTitle(active ? `${title} · ${new URL(active.serverUrl).host}` : 'AgentWork')
   })
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (new URL(url).protocol === 'https:') void shell.openExternal(url)
@@ -142,7 +143,7 @@ export async function startRemoteDesktop(frontendRoot: string): Promise<() => vo
     () => { refreshMenu() }, () => ({ revision: 0, blocked: false }))
   shortcuts.attach(window)
   refreshMenu = () =>{  Menu.setApplicationMenu(Menu.buildFromTemplate([
-    { label: 'AgentWork', submenu: [{ label: copy.reconnect, click: () => { void setup() } }, { type: 'separator' }, { label: copy.quit, role: 'quit' }] },
+    { label: 'AgentWork', submenu: [{ label: copy.reconnect, click: () => {  setup() } }, { type: 'separator' }, { label: copy.quit, role: 'quit' }] },
     shortcuts.fileMenu(shellLocale.messages), { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' },
   ])) }
   refreshMenu()
@@ -154,10 +155,19 @@ export async function startRemoteDesktop(frontendRoot: string): Promise<() => vo
     partition.protocol.unhandle('dsh-app')
     for (const key of ['state', 'connect', 'boot', 'failed']) ipcMain.removeHandler('dsh-remote:' + key)
   })
-  if (saved.serverUrl) {
-    try { await connect(saved.serverUrl); return focus }
-    catch (_error) { /* The connection form retains the saved address and permits fresh authentication. */ }
-  }
-  await setup()
+  await window.loadURL('dsh-app://app/')
+  focus()
   return focus
+}
+
+/** Categorize native failures without exposing server details or credentials. */
+function connectionFailure(error: unknown): 'address' | 'authentication' | 'certificate' | 'version' | 'network' {
+  if (error instanceof RemoteClientError) {
+    if (error.code === 'remote-server-address') return 'address'
+    if (error.code === 'remote-auth-token' || error.code === 'remote-authentication' || error.code === 'remote-authentication-required' || error.code === 'remote-bootstrap' && ['401', '403'].includes(error.resource ?? '')) return 'authentication'
+    if (['remote-frontend-version', 'remote-plugin-version', 'remote-plugin-integrity', 'remote-wiki-version', 'remote-frontend-integrity', 'remote-bootstrap-invalid'].includes(error.code)) return 'version'
+  }
+  const cause = error instanceof Error && error.cause !== null && typeof error.cause === 'object' && 'code' in error.cause ? error.cause.code : undefined
+  if (typeof cause === 'string' && ['CERT_HAS_EXPIRED', 'DEPTH_ZERO_SELF_SIGNED_CERT', 'UNABLE_TO_VERIFY_LEAF_SIGNATURE', 'SELF_SIGNED_CERT_IN_CHAIN', 'ERR_TLS_CERT_ALTNAME_INVALID'].includes(cause)) return 'certificate'
+  return 'network'
 }

@@ -12,7 +12,7 @@ it('retains DSH modules outside the reserved plugin directory and rejects missin
   const bytes = 'globalThis.module = true;'
   try {
     await mkdir(dirname(module), { recursive: true })
-    for (const name of ['_ios/carrier.js', '_ios/original-index.html', 'connect.html', 'connect.js', 'connect.css', 'stage/build/portable/boot.js']) {
+    for (const name of ['bootstrap.json', '_ios/carrier.js', '_ios/original-index.html', 'connect.html', 'connect.js', 'connect.css', 'stage/build/portable/boot.js']) {
       const path = join(root, name)
       await mkdir(dirname(path), { recursive: true }); await writeFile(path, 'fixture')
     }

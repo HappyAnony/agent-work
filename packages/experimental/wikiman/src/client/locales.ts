@@ -1,5 +1,7 @@
 /** Labels for the Wiki panel, editor and original-document citation. */
 export const en = {
+  serviceRequired: 'Connect a server to browse and edit your knowledge.',
+  configureService: 'Configure service',
   resizePanes: 'Resize Wiki panes', title: 'Knowledge base', pages: 'Pages', findPages: 'Find pages', noPagesFound: 'No matching pages.', unsaved: 'Unsaved changes', refresh: 'Refresh', loading: 'Loading…',
   more: 'Show more', listError: 'Could not load WikiMan. Try refreshing.', emptyPages: 'This knowledge base has no pages.',
   choosePage: 'Choose a page to open the WikiMan workbench.',
@@ -50,6 +52,8 @@ export const en = {
 
 /** Chinese labels use the same dictionary keys as the fallback locale. */
 export const zh: Record<keyof typeof en, string> = {
+  serviceRequired: '连接服务端后即可浏览和编辑知识库',
+  configureService: '配置服务',
   resizePanes: '调整 Wiki 分屏大小', title: '知识库', pages: '页面', findPages: '查找页面', noPagesFound: '没有匹配的页面', unsaved: '有未保存的修改', refresh: '刷新', loading: '正在加载…',
   more: '显示更多', listError: '无法加载 WikiMan，请刷新后重试', emptyPages: '知识库中还没有页面',
   choosePage: '选择页面以打开 WikiMan 工作台',
