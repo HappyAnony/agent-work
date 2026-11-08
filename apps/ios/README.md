@@ -24,6 +24,8 @@ Use a Mac with full Xcode 26 or newer, Node 24.9 or newer and pnpm. The applicat
 
 Select full Xcode as the active developer directory, or set `DEVELOPER_DIR` to its `Contents/Developer` directory before running Apple build tools.
 
+For versioned releases, use the [unified AgentWork workflow](../../docs/cookbook/releasing-agentwork.md). It imports one verified shared frontend through `prepare:frontend --frontend /absolute/artifact` and records simulator/device signing separately; the commands below build from local sources.
+
 From the repository root, build matching server resources and prepare the native project:
 
 ```sh

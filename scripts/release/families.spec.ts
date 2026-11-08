@@ -109,6 +109,7 @@ describe('release families', () => {
       '@deepseek-ai/dsh-webhook',
       '@deepseek-ai/dsh-experimental-webworker-packer',
       '@deepseek-ai/dsh-experimental-webworker-runtime',
+      '@deepseek-ai/dsh-wikiman',
       '@deepseek-ai/dsh-experimental-worktree',
     ])
   })
@@ -146,6 +147,7 @@ describe('release families', () => {
     roots.push(root)
     write(join(root, 'package.json'), '{"version":"0.0.1"}\n')
     write(join(root, 'apps/desktop/package.json'), '{"version":"0.0.1","private":true}\n')
+    write(join(root, 'packaging/agentwork-server/package.json'), '{"version":"0.0.1","private":true}\n')
     write(join(root, 'packages/experimental/prototype/package.json'), '{"version":"0.0.1","private":true}\n')
     write(join(root, 'packages/core/unselected/package.json'), '{"version":"0.0.1"}\n')
 
@@ -158,6 +160,7 @@ describe('release families', () => {
       { path: 'packages/core/published/package.json', tag: 'dsh-v0.0.2' },
       { path: 'apps/desktop/package.json', tag: undefined },
       { path: 'packages/experimental/prototype/package.json', tag: undefined },
+      { path: 'packaging/agentwork-server/package.json', tag: undefined },
     ])
   })
 

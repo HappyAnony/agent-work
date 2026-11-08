@@ -1,0 +1,68 @@
+name: AgentWork release
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: Successful AgentWork build run ID from develop
+        type: string
+        required: true
+      build_run_attempt:
+        description: Exact successful attempt number; rerun all build jobs together
+        type: string
+        required: true
+        default: '1'
+      mode:
+        description: Create/verify a draft, or publish the verified release
+        type: choice
+        options: [draft, publish]
+        default: draft
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: agentwork-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == 'HappyAnony/agent-work' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5.0.0
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Verify source build attempt
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN_ID: ${{ inputs.build_run_id }}
+          BUILD_RUN_ATTEMPT: ${{ inputs.build_run_attempt }}
+        run: |
+          mkdir -p .artifacts
+          pnpm --silent agentwork run --repository "$GITHUB_REPOSITORY" --id "$BUILD_RUN_ID" --attempt "$BUILD_RUN_ATTEMPT" > .artifacts/source.json
+          node --input-type=module -e 'import fs from "node:fs"; const r=JSON.parse(fs.readFileSync(".artifacts/source.json")).result; fs.appendFileSync(process.env.GITHUB_OUTPUT, `commit=${r.commit}\nartifact=${r.artifact}\n`)'
+      - uses: actions/download-artifact@v8.0.1
+        with:
+          name: ${{ steps.source.outputs.artifact }}
+          run-id: ${{ inputs.build_run_id }}
+          github-token: ${{ github.token }}
+          path: .artifacts/release
+      - name: Publish exact verified release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODE: ${{ inputs.mode }}
+          EXPECTED_COMMIT: ${{ steps.source.outputs.commit }}
+        run: pnpm --silent agentwork publish --input .artifacts/release --repository "$GITHUB_REPOSITORY" --mode "$MODE" --expected-commit "$EXPECTED_COMMIT"

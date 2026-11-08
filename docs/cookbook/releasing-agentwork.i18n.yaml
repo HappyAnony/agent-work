@@ -1,0 +1,40 @@
+# Bilingual-pair consistency record for releasing-agentwork.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/cookbook/releasing-agentwork.md
+/:
+  en: 5133af650c66442a
+  zh: 6a032d5a54d49a52
+/build-and-release-agentwork:
+  en: 94a530854d450365
+  zh: cebd38be7751f995
+/build-and-release-agentwork/summary:
+  en: e8f76a0c177f368e
+  zh: 098d49c1a6a92613
+/build-and-release-agentwork/table-of-contents:
+  en: 9f4ebddff5a63956
+  zh: 5a0f0941fd047249
+/build-and-release-agentwork/prepare-a-fixed-checkout:
+  en: cb011f0d27e94f88
+  zh: e26c9937c194a177
+/build-and-release-agentwork/build-shared-resources:
+  en: 4f771a51d34165ff
+  zh: fe23df1c3150ac24
+/build-and-release-agentwork/build-native-targets:
+  en: ae06c906c6e6d7ce
+  zh: 448a54042d1e743e
+/build-and-release-agentwork/collect-and-publish:
+  en: 96cd1d867368e71f
+  zh: e5794704c12a871d
+/build-and-release-agentwork/use-github-actions:
+  en: e3ba2c09ed74cc91
+  zh: 6cd5f82a1c0cf3e1
+/build-and-release-agentwork/deploy-a-stopped-server:
+  en: ae04d1686cdca668
+  zh: 80b2296c1adbfc5f
+/build-and-release-agentwork/recover-from-failure:
+  en: 978ff0a951b8d7f5
+  zh: 886d882b8ef79f2d
+/build-and-release-agentwork/dev-note:
+  en: 0b42c810251352f0
+  zh: 0a3498c58f2ffa49

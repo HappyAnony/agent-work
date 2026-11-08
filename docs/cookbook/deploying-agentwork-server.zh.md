@@ -10,6 +10,8 @@ description: "在 Linux 或 macOS 部署 AgentWork 后端，并连接 Web、移�
 
 将 Agent、工具、Wiki 内核和数据集中运行在一台 Linux 或 macOS 服务端。Web 和移动浏览器加载服务端前端；可选 Mac 发行包从应用包加载匹配的前端资源。本教程通过私有 SSH 隧道访问，HTTPS 入口需单独部署。
 
+不可覆盖的服务端运行包、配套 Mac/iOS 构建和 GitHub Actions 见[构建与发布 AgentWork](releasing-agentwork.zh.md)。下列依赖工作区的命令仍用于源码开发。
+
 ## 目录
 
 - [准备服务端](#prepare-the-server)

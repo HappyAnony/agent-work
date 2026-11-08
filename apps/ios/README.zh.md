@@ -24,6 +24,8 @@ Capacitor 应用在 WKWebView 的 `dsh-app://app` 地址中加载本地打包的
 
 将完整 Xcode 设为当前开发目录，或在运行 Apple 构建工具前，将 `DEVELOPER_DIR` 设为其 `Contents/Developer` 目录。
 
+版本发行使用[统一 AgentWork 流程](../../docs/cookbook/releasing-agentwork.zh.md)。它通过 `prepare:frontend --frontend /absolute/artifact` 导入同一份验证过的共享前端，分别记录模拟器/真机签名；下列命令从本地源码构建。
+
 在仓库根目录构建与服务端匹配的资源，并准备原生工程：
 
 ```sh

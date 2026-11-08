@@ -34,6 +34,8 @@ env:
 
 jobs:
   preview:
+    if: >-
+      ${{ github.repository == 'deepseek-ai/deepseek-harness' }}
     # The required outcome is the build, which runs four TypeScript programs
     # (Host and Client package compilation, then each face's aggregate test and
     # script check) after the Typert pass. Publishing is best effort: transport,

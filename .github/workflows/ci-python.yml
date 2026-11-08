@@ -24,7 +24,8 @@ concurrency:
 
 jobs:
   python-sdk:
-    if: github.event_name == 'pull_request'
+    if: >-
+      ${{ github.repository == 'deepseek-ai/deepseek-harness' && (github.event_name == 'pull_request') }}
     runs-on: ubuntu-latest
     name: python 3.10 / keyless SDK
     steps:
@@ -53,7 +54,8 @@ jobs:
   # pull requests; Linux ARM64 and both macOS architectures run in
   # ci-master.yml.
   python-runtime:
-    if: github.event_name == 'pull_request'
+    if: >-
+      ${{ github.repository == 'deepseek-ai/deepseek-harness' && (github.event_name == 'pull_request') }}
     needs: python-sdk
     name: python runtime / release-shaped matrix
     uses: ./.github/workflows/build-exe-for-python-sdk.yml
@@ -76,7 +78,8 @@ jobs:
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
           || 'ubuntu-latest' }}
     needs: [python-sdk, python-runtime]
-    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+    if: >-
+      ${{ github.repository == 'deepseek-ai/deepseek-harness' && (!cancelled() && github.event_name == 'pull_request') }}
     steps:
       - name: Fail if any needed job did not succeed
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')

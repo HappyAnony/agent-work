@@ -14,6 +14,8 @@ An optional remote-only Mac distribution packages the Web, plugin and Wiki front
 
 The remote AgentWork distribution opens its packaged interface before connecting. Service selection and model API keys are available in Settings, and server failures remain visible without returning to a startup form.
 
+Versioned AgentWork server, Mac and iOS artifacts use the [unified build and release workflow](../../docs/cookbook/releasing-agentwork.md); its remote Mac configuration packages the carrier without preparing a bundled backend.
+
 ## Table of Contents
 
 - [Application overview](#application-overview)

@@ -16,7 +16,8 @@ jobs:
     name: Approve Check
     # Skipped while MERGE_POLICY_HEAD_DIFF is empty or `off`; otherwise the job fails by that mode and publishes
     # `Policy / Reviewer Check` whatever that mode says.
-    if: ${{ vars.MERGE_POLICY_HEAD_DIFF != '' && vars.MERGE_POLICY_HEAD_DIFF != 'off' }}
+    if: >-
+      ${{ github.repository == 'deepseek-ai/deepseek-harness' && (vars.MERGE_POLICY_HEAD_DIFF != '' && vars.MERGE_POLICY_HEAD_DIFF != 'off') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

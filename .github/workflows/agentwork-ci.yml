@@ -1,0 +1,38 @@
+name: AgentWork CI
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agentwork-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DSH_TELEMETRY_DISABLED: '1'
+
+jobs:
+  checks:
+    if: github.repository == 'HappyAnony/agent-work'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5.0.0
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec vitest run scripts/agentwork scripts/release/families.spec.ts --maxWorkers=2 --testTimeout=60000 --hookTimeout=60000
+      - run: pnpm run build
+      - run: pnpm run test:docs
+      - run: pnpm run lint

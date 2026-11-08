@@ -29,7 +29,8 @@ env:
 
 jobs:
   cua-helper:
-    if: startsWith(github.ref, 'refs/tags/dsh-v') || inputs.skip-tag-check
+    if: >-
+      ${{ github.repository == 'deepseek-ai/deepseek-harness' && (startsWith(github.ref, 'refs/tags/dsh-v') || inputs.skip-tag-check) }}
     uses: ./.github/workflows/cua-helper-package.yml
     with:
       reuse: true
@@ -37,6 +38,8 @@ jobs:
       cua_run_id: ${{ inputs.cua_run_id }}
 
   pack:
+    if: >-
+      ${{ github.repository == 'deepseek-ai/deepseek-harness' }}
     name: Pack npm tarballs
     needs: cua-helper
     runs-on: ubuntu-24.04
@@ -141,6 +144,8 @@ jobs:
           retention-days: 7
 
   publish:
+    if: >-
+      ${{ github.repository == 'deepseek-ai/deepseek-harness' }}
     name: Publish to npm
     needs: pack
     runs-on: ubuntu-24.04

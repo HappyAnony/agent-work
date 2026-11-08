@@ -1,0 +1,148 @@
+name: AgentWork build
+
+on:
+  push:
+    branches: [develop]
+    paths-ignore: ['.agents/plans/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agentwork-build-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DSH_TELEMETRY_DISABLED: '1'
+
+jobs:
+  frontend:
+    if: github.repository == 'HappyAnony/agent-work' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5.0.0
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: mkdir -p .artifacts/reports
+      - name: Build shared frontend once
+        run: pnpm --silent agentwork build --target frontend --out .artifacts/frontend > .artifacts/reports/frontend.json
+      - name: Archive shared resources with file modes
+        run: pnpm --silent agentwork pack --input .artifacts/frontend --out .artifacts/frontend.tar.gz > .artifacts/reports/frontend-pack.json
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: agentwork-artifact-frontend-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .artifacts/frontend.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v7.0.1
+        if: always()
+        with:
+          name: agentwork-report-frontend-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .artifacts/reports/*.json
+          retention-days: 7
+
+  native:
+    needs: frontend
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: server-linux-x64
+            runner: ubuntu-22.04
+          - target: server-darwin-arm64
+            runner: macos-26
+          - target: mac-arm64
+            runner: macos-26
+          - target: ios-simulator
+            runner: macos-26
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5.0.0
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - uses: actions/setup-go@v7
+        if: startsWith(matrix.target, 'server-')
+        with:
+          go-version-file: native/wikiman/wiki-kernel/go.mod
+          cache-dependency-path: native/wikiman/wiki-kernel/go.sum
+      - name: Select full Xcode
+        if: runner.os == 'macOS'
+        run: echo 'DEVELOPER_DIR=/Applications/Xcode_26.3.app/Contents/Developer' >> "$GITHUB_ENV"
+      - run: pnpm install --frozen-lockfile
+      - run: mkdir -p .artifacts/reports
+      - uses: actions/download-artifact@v8.0.1
+        with:
+          name: agentwork-artifact-frontend-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .artifacts/download
+      - run: pnpm --silent agentwork unpack --input .artifacts/download/frontend.tar.gz --out .artifacts/frontend > .artifacts/reports/shared-import.json
+      - name: Build native target using shared resources
+        env:
+          TARGET: ${{ matrix.target }}
+        run: pnpm --silent agentwork build --target "$TARGET" --frontend .artifacts/frontend --out .artifacts/target > .artifacts/reports/build.json
+      - name: Boot standalone server with isolated fixture data
+        if: startsWith(matrix.target, 'server-')
+        run: pnpm --silent agentwork smoke --input .artifacts/target --fixture packages/experimental/wikiman/tests/fixtures/portable --timeout-ms 60000 > .artifacts/reports/server-smoke.json
+      - name: Archive target
+        env:
+          TARGET: ${{ matrix.target }}
+        run: pnpm --silent agentwork pack --input .artifacts/target --out ".artifacts/$TARGET.tar.gz" > .artifacts/reports/pack.json
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: agentwork-artifact-${{ matrix.target }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .artifacts/${{ matrix.target }}.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v7.0.1
+        if: always()
+        with:
+          name: agentwork-report-${{ matrix.target }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .artifacts/reports/*.json
+          retention-days: 7
+
+  release-directory:
+    needs: [frontend, native]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5.0.0
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: actions/download-artifact@v8.0.1
+        with:
+          pattern: agentwork-artifact-*-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .artifacts/transports
+          merge-multiple: true
+      - run: mkdir -p .artifacts/reports
+      - run: pnpm --silent agentwork collect --input .artifacts/transports --out .artifacts/release > .artifacts/reports/release.json
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: agentwork-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .artifacts/release/*
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v7.0.1
+        if: always()
+        with:
+          name: agentwork-report-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .artifacts/reports/*.json
+          retention-days: 7

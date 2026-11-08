@@ -4,7 +4,7 @@
 
 源码托管目标：[HappyAnony/agent-work](https://github.com/HappyAnony/agent-work)。本地增加 `agentwork` remote，保留 `origin` 指向原 DSH 上游；后续推送前核对远程地址和分支，避免将 AgentWork 改造推送到上游。源码首次推送及远程核验状态登记在 TODO 的 G00。
 
-本文是待实施工作的计划，不代表所述能力已经交付。用户已要求将方案和任务落库，供后续 Agent 持续跟进；本次落库不启动部署、对外发布或知识库格式迁移。发布命令名称、产品组合名称和协同技术选型仍需在实施前确认。
+本文定义目标、范围和验收原则，实现与验收状态以 TODO 为准。统一构建命令及报告字段由[命令参考](../../../scripts/agentwork/README.zh.md)管理；正式产品组合迁移与协同模型继续独立跟进。构建、公开发布、运行服务切换和知识库格式迁移分别执行，不以构建成功代替后续操作的授权或验收。
 
 ## 目标与范围
 
@@ -38,7 +38,7 @@ R1/R2/R3 是工作阶段，不是已经确定的发布版本号。实际版本�
 
 固定源码与依赖 → 构建一次共享前端资源包 → 分平台构建后端 → 组装 Mac/iOS 客户端 → 校验兼容性和运行行为 → 汇集不可覆盖的发布目录 → 显式部署或分发。
 
-建议在 `scripts/agentwork/` 下实现统一入口，提供 `build`、`verify`、`release`、`deploy --dry-run`、`deploy` 和 `rollback` 操作。这些是拟定接口，不是当前可执行命令；最终语法由实现任务确定并同步到手册和 Agent 技能。CI 应调用同一实现，不复制一套发布逻辑。
+统一入口放在 `scripts/agentwork/`，提供 `build`、`verify`、`release`、`deploy --dry-run`、`deploy` 和 `rollback` 等操作；参数、报告和当前支持范围见命令参考、[人工手册](../../../docs/cookbook/releasing-agentwork.zh.md)与 [Agent 技能](../../skills/agentwork-release/SKILL.md)。CI 调用同一实现，不复制一套发布逻辑。共享资源按 WikiMan 包名发现源码，构建接口不依赖实验目录名称；正式迁包与构建工具可独立验收。
 
 ### 版本与产物
 
@@ -62,13 +62,13 @@ Linux 和 macOS 分别编译目标平台的原生依赖与 Wiki 后端。Mac/iOS
 
 ## R1：GitHub Actions 构建、发布与部署
 
-用户要求以 GitHub Actions 承接后续版本构建与发布。本节登记待实现的流水线，不表示工作流已适配或发布环境已经配置。Actions 调用 `scripts/agentwork/` 的统一脚本，人工本地执行与 Agent 执行使用相同参数和校验；YAML 只负责事件、任务依赖、runner、凭据和产物传递。
+GitHub Actions 承接版本构建与发布，其实际运行、签名和部署环境验证状态登记在 TODO，不以 YAML 文件存在代替验收。Actions 调用 `scripts/agentwork/` 的统一脚本，人工本地执行与 Agent 执行使用相同参数和校验；YAML 只负责事件、任务依赖、runner、凭据和产物传递。
 
 ### 仓库与触发方式
 
 先审计现有 `.github/workflows/`。继承的 DSH 配置包含专用 runner、上游分支约定、COS 发布和组织变量，不能直接作为 AgentWork 发布能力使用。保留源码来源与许可证，按实际用途隔离、停用或适配这些工作流；不要因历史文件存在就声明 CI 已就绪。
 
-拟使用独立命名的 `agentwork-ci.yml`、`agentwork-build.yml`、`agentwork-release.yml` 和 `agentwork-deploy.yml`，最终名称在实现时确定。PR 和 `develop` 更新运行必要检查；手动触发可选择构建目标。版本 tag 和 Release 的命名、默认分支以及发布触发条件须在 A02/G01 中固定，避免误触发继承的上游流程。
+使用独立命名的 `agentwork-ci.yml`、`agentwork-build.yml`、`agentwork-release.yml` 和 `agentwork-deploy.yml`。PR 和 `develop` 更新运行必要检查，`develop` 推送及手动操作构建配套产物，手动发布选择精确成功 run/attempt。仓库默认分支为 `develop`，产品标签使用 `agentwork-v<根清单版本>`；同版本不同源码或不同资产拒绝覆盖。继承的上游任务在 AgentWork 仓库中隔离。
 
 ### 任务依赖与产物传递
 

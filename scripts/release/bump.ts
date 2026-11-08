@@ -249,7 +249,7 @@ function rootVersion(root: string): string {
  * @returns Private workspace manifests sorted by path.
  */
 function privateDshVersions(root: string): PrivateDshVersion[] {
-  return globSync(['apps/*/package.json', 'packages/*/*/package.json'], { cwd: root })
+  return globSync(['apps/*/package.json', 'packages/*/*/package.json', 'packaging/agentwork-server/package.json'], { cwd: root })
     .map(path => path.replaceAll('\\', '/'))
     .sort()
     .flatMap((manifestPath) => {

@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "schemaVersion": 1,
+  "operation": "help",
+  "commands": [
+    "inspect",
+    "build",
+    "verify",
+    "release",
+    "publish",
+    "deploy",
+    "rollback",
+    "pack",
+    "unpack",
+    "collect",
+    "run",
+    "runner",
+    "select",
+    "smoke"
+  ],
+  "usage": "pnpm agentwork <command> [options]",
+  "manual": "docs/cookbook/releasing-agentwork.md",
+  "agent": ".agents/skills/agentwork-release/SKILL.md"
+}

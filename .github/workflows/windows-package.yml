@@ -63,6 +63,8 @@ concurrency:
 
 jobs:
   package:
+    if: >-
+      ${{ github.repository == 'deepseek-ai/deepseek-harness' }}
     outputs:
       directory: ${{ steps.retained.outputs.directory }}
       runner: ${{ steps.retained.outputs.runner }}
@@ -212,6 +214,8 @@ jobs:
           retention-days: 14
 
   upload-artifact:
+    if: >-
+      ${{ github.repository == 'deepseek-ai/deepseek-harness' }}
     defaults:
       run:
         shell: pwsh

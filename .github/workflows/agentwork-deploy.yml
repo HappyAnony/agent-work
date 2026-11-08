@@ -1,0 +1,104 @@
+name: AgentWork stopped-service deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: Successful AgentWork build run ID
+        type: string
+        required: true
+      build_run_attempt:
+        description: Exact successful attempt number
+        type: string
+        default: '1'
+        required: true
+      target:
+        description: Server platform matching the controlled deployment runner
+        type: choice
+        options: [server-linux-x64, server-darwin-arm64]
+        required: true
+      mode:
+        description: Preview is read-only; deploy/rollback select programs and leave the service stopped
+        type: choice
+        options: [preview, deploy, rollback]
+        default: preview
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: agentwork-deploy
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    if: github.repository == 'HappyAnony/agent-work' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      runner: ${{ steps.source.outputs.runner }}
+      artifact: ${{ steps.source.outputs.artifact }}
+      commit: ${{ steps.source.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5.0.0
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUNNER_LABELS: ${{ vars.AGENTWORK_DEPLOY_RUNNER }}
+          PROGRAM_ROOT: ${{ vars.AGENTWORK_DEPLOY_ROOT }}
+          SERVER_CONFIG: ${{ vars.AGENTWORK_DEPLOY_CONFIG }}
+          BUILD_RUN_ID: ${{ inputs.build_run_id }}
+          BUILD_RUN_ATTEMPT: ${{ inputs.build_run_attempt }}
+        run: |
+          mkdir -p .artifacts
+          pnpm --silent agentwork runner --labels "$RUNNER_LABELS" --root "$PROGRAM_ROOT" --config "$SERVER_CONFIG" > .artifacts/runner.json
+          pnpm --silent agentwork run --repository "$GITHUB_REPOSITORY" --id "$BUILD_RUN_ID" --attempt "$BUILD_RUN_ATTEMPT" > .artifacts/source.json
+          node --input-type=module -e 'import fs from "node:fs"; const s=JSON.parse(fs.readFileSync(".artifacts/source.json")).result; const r=JSON.parse(fs.readFileSync(".artifacts/runner.json")).result; fs.appendFileSync(process.env.GITHUB_OUTPUT, `commit=${s.commit}\nartifact=${s.artifact}\nrunner=${JSON.stringify(r.labels)}\n`)'
+
+  select-program:
+    needs: preflight
+    runs-on: ${{ fromJSON(needs.preflight.outputs.runner) }}
+    environment: agentwork-deploy
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5.0.0
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version-file: .node-version
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: actions/download-artifact@v8.0.1
+        with:
+          name: ${{ needs.preflight.outputs.artifact }}
+          run-id: ${{ inputs.build_run_id }}
+          github-token: ${{ github.token }}
+          path: .artifacts/release
+      - name: Verify and select server artifact
+        env:
+          TARGET: ${{ inputs.target }}
+          EXPECTED_COMMIT: ${{ needs.preflight.outputs.commit }}
+        run: pnpm --silent agentwork select --input .artifacts/release --target "$TARGET" --out .artifacts/server --expected-commit "$EXPECTED_COMMIT"
+      - name: Preview or select stopped-service program
+        env:
+          MODE: ${{ inputs.mode }}
+          PROGRAM_ROOT: ${{ vars.AGENTWORK_DEPLOY_ROOT }}
+          SERVER_CONFIG: ${{ vars.AGENTWORK_DEPLOY_CONFIG }}
+        run: |
+          case "$MODE" in
+            preview) pnpm --silent agentwork deploy --input .artifacts/server --root "$PROGRAM_ROOT" --config "$SERVER_CONFIG" --dry-run ;;
+            deploy) pnpm --silent agentwork deploy --input .artifacts/server --root "$PROGRAM_ROOT" --config "$SERVER_CONFIG" ;;
+            rollback) pnpm --silent agentwork rollback --input .artifacts/server --root "$PROGRAM_ROOT" --config "$SERVER_CONFIG" ;;
+            *) exit 2 ;;
+          esac

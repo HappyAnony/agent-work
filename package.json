@@ -14,9 +14,11 @@
     "native/system",
     "native/system/packages/*",
     "apps/*",
-    "website"
+    "website",
+    "packaging/agentwork-server"
   ],
   "scripts": {
+    "agentwork": "tsx scripts/agentwork/cli.ts",
     "prepare:primary-runtime": "tsx scripts/primary-runtime/prepare.ts",
     "build": "tsx scripts/build.ts",
     "build:artifacts": "tsx scripts/build.ts --scope artifacts",
@@ -223,6 +225,7 @@
     "verify-product-use": "tsx scripts/verify-product-use.ts"
   },
   "devDependencies": {
+    "tar": "^7.5.22",
     "@deepseek-ai/dsh-hooks-claude-code": "workspace:*",
     "@deepseek-ai/dsh-hooks-codex": "workspace:*",
     "@deepseek-ai/dsh-tool-executor-native": "workspace:*",
@@ -285,7 +288,6 @@
     "semver": "^7.8.5",
     "smol-toml": "^1.9.0",
     "spdx-expression-parse": "^5.0.0",
-    "tar": "^7.5.22",
     "tsdown": "^0.22.2",
     "tsx": "^4.23.13",
     "typescript": "^6.0.3",

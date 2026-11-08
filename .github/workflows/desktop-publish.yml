@@ -31,6 +31,8 @@ permissions:
 
 jobs:
   route:
+    if: >-
+      ${{ github.repository == 'deepseek-ai/deepseek-harness' }}
     runs-on: ubuntu-latest
     outputs:
       selection: ${{ steps.route.outputs.selection }}
@@ -60,6 +62,8 @@ jobs:
         run: node --import tsx apps/desktop/scripts/resolve-desktop-publish-ci.ts
 
   prepare:
+    if: >-
+      ${{ github.repository == 'deepseek-ai/deepseek-harness' }}
     needs: route
     runs-on: [self-hosted, '${{ needs.route.outputs.runner }}']
     timeout-minutes: 30
@@ -108,6 +112,8 @@ jobs:
         run: node --import tsx apps/desktop/scripts/publish-desktop-ci.ts --check
 
   publish:
+    if: >-
+      ${{ github.repository == 'deepseek-ai/deepseek-harness' }}
     name: Approve ${{ needs.prepare.outputs.label }}
     needs: [route, prepare]
     runs-on: [self-hosted, '${{ needs.route.outputs.runner }}']
@@ -178,7 +184,8 @@ jobs:
 
   upload-website-installer:
     needs: [route, prepare, publish]
-    if: inputs.upload_website && needs.prepare.outputs.preset != 'test'
+    if: >-
+      ${{ github.repository == 'deepseek-ai/deepseek-harness' && (inputs.upload_website && needs.prepare.outputs.preset != 'test') }}
     runs-on: [self-hosted, '${{ needs.route.outputs.runner }}']
     environment: desktop-production
     timeout-minutes: 60
@@ -223,7 +230,8 @@ jobs:
 
   purge-website-installer:
     needs: [route, prepare, upload-website-installer]
-    if: inputs.upload_website && needs.prepare.outputs.preset != 'test'
+    if: >-
+      ${{ github.repository == 'deepseek-ai/deepseek-harness' && (inputs.upload_website && needs.prepare.outputs.preset != 'test') }}
     runs-on: [self-hosted, '${{ needs.route.outputs.runner }}']
     environment: desktop-production
     timeout-minutes: 60

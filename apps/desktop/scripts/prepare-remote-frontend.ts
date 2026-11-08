@@ -17,17 +17,18 @@ const hash = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('h
  * Assemble local Web, plugin and Wiki resources without a backend runtime or personal data.
  * @param repository - Built DSH checkout with native Wiki resources.
  * @param destination - New absolute output directory; existing outputs are preserved.
+ * @param runtime - Wiki app and notices root; defaults to the local native build output.
  * @returns Number of packaged browser entry modules.
  */
-export async function prepareRemoteFrontend(repository: string, destination: string): Promise<number> {
+export async function prepareRemoteFrontend(repository: string, destination: string, runtime = join(repository, 'native/wikiman/out')): Promise<number> {
   await mkdir(dirname(destination), { recursive: true })
   const staged = await mkdtemp(join(dirname(destination), '.remote-frontend-'))
   try {
     await cp(join(repository, 'apps/web/dist'), join(staged, 'web'), { recursive: true })
-    await cp(join(repository, 'native/wikiman/out/wiki-app'), join(staged, 'wiki'), {
+    await cp(join(runtime, 'wiki-app'), join(staged, 'wiki'), {
       recursive: true, filter: path => !path.endsWith('.map') && !path.includes('/pandoc/'),
     })
-    await cp(join(repository, 'native/wikiman/out/notices'), join(staged, 'notices'), { recursive: true })
+    await cp(join(runtime, 'notices'), join(staged, 'notices'), { recursive: true })
     const bundles: Record<string, string> = {}
     const directories = new Map<string, string>()
     const packages = join(repository, 'packages')

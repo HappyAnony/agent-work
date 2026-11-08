@@ -10,6 +10,8 @@ English | [中文](deploying-agentwork-server.zh.md)
 
 Run the Agent, tools, Wiki kernel and data on one Linux or macOS server. Web and mobile browsers load the server frontend; the optional Mac distribution loads matching frontend resources from its application bundle. This tutorial uses a private SSH tunnel. HTTPS ingress is a separate deployment step.
 
+For immutable server packages, matching Mac/iOS builds and GitHub Actions, follow [Build and release AgentWork](releasing-agentwork.md). The checkout-based commands below remain the source-development path.
+
 ## Table of Contents
 
 - [Prepare the server](#prepare-the-server)

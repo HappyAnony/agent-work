@@ -1,16 +1,26 @@
 /** Assemble the iOS app's verified local resources without backend executables or credentials. */
 import { cp, mkdir, mkdtemp, rename, rm } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseArgs } from 'node:util'
 import { build } from 'tsdown'
 import { prepareRemoteFrontend } from '../../desktop/scripts/prepare-remote-frontend.ts'
 
 const repository = fileURLToPath(new URL('../../..', import.meta.url))
+const { values } = parseArgs({ options: { frontend: { type: 'string' } } })
 const app = join(repository, 'apps/ios')
 const temporary = await mkdtemp(join(app, '.prepare-'))
 try {
   const inventory = join(temporary, 'inventory')
-  const count = await prepareRemoteFrontend(repository, inventory)
+  let count: number
+  if (values.frontend) {
+    const { verifyArtifact } = await import('../../../scripts/agentwork/model.ts')
+    const source = resolve(values.frontend)
+    const manifest = await verifyArtifact(source)
+    if (manifest.target !== 'frontend') throw new Error('Use a verified shared frontend artifact')
+    await cp(join(source, 'payload'), inventory, { recursive: true })
+    count = manifest.files.filter(row => /^payload\/plugins\/@[^/]+\/[^/]+\/client\.js$/u.test(row.path)).length
+  } else count = await prepareRemoteFrontend(repository, inventory)
   const www = join(temporary, 'www')
   await cp(join(inventory, 'web'), www, { recursive: true })
   await mkdir(join(www, '_ios'), { recursive: true })

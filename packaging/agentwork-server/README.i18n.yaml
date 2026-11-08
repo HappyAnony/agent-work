@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packaging/agentwork-server/README.md
+/:
+  en: 003bfadc87090b36
+  zh: 1fa24bd1da33f616
+/agentwork-server-closure:
+  en: 640d58e6d8a08248
+  zh: d3623a1dfedeab04
+/agentwork-server-closure/summary:
+  en: 21aca32f4f66367c
+  zh: 96bbfbf873ab5df1
+/agentwork-server-closure/table-of-contents:
+  en: fb9c6b5fd8280715
+  zh: 37efc812db8930d0
+/agentwork-server-closure/build-and-run:
+  en: 9728d46a1c6f7598
+  zh: 146ccfc9ef460b54
+/agentwork-server-closure/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269
