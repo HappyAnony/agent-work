@@ -1,8 +1,12 @@
 /** Remote client packaging consumes local frontend resources independently of the bundled DSH backend. */
 import { existsSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { resolveMacOSSigningEnvironment, resolveMacOSNotarizationEnvironment } from './desktop-release-environment.mjs'
+
+const require = createRequire(import.meta.url)
+const electronChecksums = require('electron/checksums.json')
 
 const frontend = process.env.DSH_REMOTE_FRONTEND_DIR
 if (!frontend || !existsSync(resolve(frontend, 'manifest.json'))) throw new Error('DSH_REMOTE_FRONTEND_DIR must name prepared remote frontend resources')
@@ -14,6 +18,7 @@ if (!unsigned) resolveMacOSNotarizationEnvironment(process.env)
 export default {
   appId: process.env.DSH_DESKTOP_APP_ID ?? 'local.agentwork.remote',
   productName: 'AgentWork',
+  electronDownload: { checksums: electronChecksums },
   extraMetadata: { dshRemoteClient: true },
   asar: true,
   files: ['lib/main.js', 'lib/preload-remote.cjs', 'package.json'],

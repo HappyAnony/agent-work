@@ -112,3 +112,5 @@
 发布来源检查补修：`agentwork run` 还要求相同源码的 AgentWork CI 成功，避免独立打包成功但必要检查失败时继续发布。新增 CI 失败、取消、排队、错误源码/事件、缺失及权限拒绝用例；脚本/版本管理共 99 项、类型检查、定向 lint、43 项文档同步和 21 项文档检查通过。真实失败 run 与运行中 run 的选择均返回 `build-not-successful`；尚未创建 Release。
 
 隔离开发机验收修正：Linux 包确实能提供静态资源，但日志显示 API/Typert/实验分组的部分 Node 入口缺失，WikiMan 等服务未激活；原先仅按 bootstrap 资源报告的 smoke 成功不构成可用性证据。Node 适配发现已改为所有声明 Client 能力的工作区，并补齐 dual Client 的 Node 输出；产物验证检查各工作区声明的 main。启动验收新增真实 owner RPC 读取夹具页，缺服务/空结果等拒绝用例通过。macOS 原生包通过增强验收，读取 4 个页面及 159 个 Web 文件。Linux 开发机的 Landlock probe 返回 125，内核不支持或未启用；不禁用隔离策略，shell 隔离能力未验收。构建 run 42463764424 的 Mac 下载遇到上游 504，不视为归档校验通过；继续新源码完整构建。
+
+Electron 下载补修：run 42465747959 的 Linux 目标已通过真实 Wiki owner RPC 启动验收并上传，Mac 再次遇到 504。远端配置改为将锁定 Electron npm 包自带的 `checksums.json` 交给 electron-builder，保留归档 SHA-256 校验，减少远端 SHASUMS 请求；配置测试通过，实际 Mac ad-hoc 应用重新打包成功。新完整集合仍待云端验收，未创建或发布 Release。

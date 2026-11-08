@@ -1,9 +1,10 @@
 /** Source metadata distinguishes clean releases from reproducible development snapshots. */
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { verifyRuntimeClosure } from '../verify-runtime-closure.ts'
 import { expect, it } from 'vitest'
+import { z } from 'zod'
 import { buildArtifact, sourceMetadata, type BuildRequest } from './build.ts'
 import { temporary } from './fixture.ts'
 import { run } from './process.ts'
@@ -58,4 +59,19 @@ it('rejects an output that contains its input before running any build tool', as
 it('closes the standalone product dependency graph over required workspace peers', async () => {
   const root = fileURLToPath(new URL('../..', import.meta.url))
   expect((await verifyRuntimeClosure(root, 'packaging/agentwork-server/package.json', false)).failures).toEqual([])
+})
+
+
+it('uses the locked Electron package checksums without disabling archive validation', async () => {
+  const root = await temporary()
+  await writeFile(join(root, 'manifest.json'), '{}')
+  const repository = fileURLToPath(new URL('../..', import.meta.url))
+  const configuration = new URL('../../apps/desktop/scripts/electron-builder-remote.config.mjs', import.meta.url).href
+  const output = await run(process.execPath, ['--input-type=module', '-e',
+    `const config = (await import(${JSON.stringify(configuration)})).default; process.stdout.write(JSON.stringify(config.electronDownload))`,
+  ], { cwd: repository, timeoutMs: 30_000, env: { DSH_REMOTE_FRONTEND_DIR: root, DSH_DESKTOP_UNSIGNED: '1' } }, true)
+  const checksumSchema = z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/u))
+  const checksums = checksumSchema.parse(JSON.parse(await readFile(join(repository, 'apps/desktop/node_modules/electron/checksums.json'), 'utf8')))
+  expect(z.object({ checksums: checksumSchema }).strict().parse(JSON.parse(output))).toEqual({ checksums })
+  expect(Object.keys(checksums).some(name => /^electron-v.+-darwin-arm64\.zip$/u.test(name))).toBe(true)
 })
