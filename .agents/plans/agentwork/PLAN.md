@@ -16,7 +16,7 @@
 
 WikiMan 位于 `packages/experimental/wikiman/`，包名为 `@deepseek-ai/dsh-wikiman`；改造后的内核和编辑器源码位于 `native/wikiman/wiki-kernel/` 与 `native/wikiman/wiki-app/`。DSH 工作台与 WikiMan 原生编辑器共同提供知识库能力。
 
-现有入口包括 `native/wikiman/build.sh`、`scripts/prepare-agentwork-server.ts`、`apps/desktop/scripts/prepare-remote-frontend.ts`、`apps/desktop/scripts/electron-builder-remote.config.mjs` 和 `apps/ios/scripts/`。目前已有单端构建与资源指纹校验，但没有贯穿所有平台的统一发布流程。
+现有入口包括 `native/wikiman/build.sh`、`scripts/prepare-agentwork-server.ts`、`apps/desktop/scripts/prepare-remote-frontend.ts`、`apps/desktop/scripts/electron-builder-remote.config.mjs` 和 `apps/ios/scripts/`。统一构建与发布工具位于 `scripts/agentwork/`，四个 AgentWork 工作流已接入 GitHub Actions；当前支持、命令与开发职责见[构建参考](../../../scripts/agentwork/README.zh.md)。完整云端集合、正式签名和在线升级的实际状态以 TODO 为准。
 
 现有 portable 同步通过快照和摘要识别冲突、保留冲突副本；它不提供块级实时协同。断线时保留界面或输入不等于知识库支持离线编辑。已有文档与页面写入校验不能直接删去，改成无条件覆盖。
 
@@ -44,7 +44,7 @@ R1/R2/R3 是工作阶段，不是已经确定的发布版本号。实际版本�
 
 发布清单至少记录发布标识、源码提交、工作区状态、依赖锁文件摘要、构建工具版本、平台与架构、接口版本、知识库格式版本、产物摘要及校验结果。开发构建可允许脏工作区，但不得作为正式发布产物；正式发布拒绝未提交修改。产物不包含访问令牌、模型密钥、签名私钥或用户知识库。
 
-共享资源范围包括 DSH Web、所有被打包的客户端插件及其分块、CSS、字体、语言、图片、Wiki 编辑器资源和许可证声明。服务端和原生客户端使用同一份资源；同一提交号不能替代字节一致性校验。需要实现服务端资源导入与加载流程，不能将原生客户端的资源目录直接当作服务端部署目录。
+共享资源范围包括 DSH Web、所有被打包的客户端插件及其分块、CSS、字体、语言、图片、Wiki 编辑器资源和许可证声明。服务端和原生客户端使用同一份资源；同一提交号不能替代字节一致性校验。服务端通过资源导入与加载流程消费共享包，不能将原生客户端的资源目录直接当作服务端部署目录。
 
 Linux 和 macOS 分别编译目标平台的原生依赖与 Wiki 后端。Mac/iOS 在 macOS 构建；签名和设备授权使用平台已有机制。不能把源码目录的链接、其他平台的 `node_modules` 或开发机绝对路径带入服务端运行包。服务端仍通过 `dsh` profile 启动。
 
