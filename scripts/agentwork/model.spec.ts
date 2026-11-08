@@ -115,3 +115,14 @@ describe('complete artifact verification', () => {
     await expect(verifyArtifact(frontend.directory)).rejects.toMatchObject({ code: 'unexpected-file' })
   })
 })
+
+
+it('rejects any declared Node main omitted from a standalone workspace package', async () => {
+  const { directory, manifest } = await artifact(await temporary(), 'server-linux-x64')
+  const pkg = join(directory, 'payload/server/node_modules/@deepseek-ai/dsh-api-gateway')
+  await mkdir(pkg, { recursive: true })
+  await writeFile(join(pkg, 'package.json'), JSON.stringify({ main: 'lib/index.js' }))
+  await unlink(join(directory, 'artifact.json'))
+  await seal(directory, manifest)
+  await expect(verifyArtifact(directory)).rejects.toMatchObject({ code: 'missing-resource' })
+})

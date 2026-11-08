@@ -9,6 +9,31 @@ import { ReleaseError, verifyArtifact } from './model.ts'
 import type { Execution } from './process.ts'
 
 /**
+ * Verify the owner RPC reaches the active WikiMan service and its native library.
+ * @param base - Isolated authenticated server origin.
+ * @param cookie - Transient test session; never included in reports.
+ * @param timeoutMs - Per-request duration limit.
+ * @param fetcher - HTTP transport owned by the caller or its test.
+ * @returns Number of pages read through the real owner API.
+ */
+export async function checkWikiRuntime(base: string, cookie: string, timeoutMs: number, fetcher: typeof fetch = fetch): Promise<number> {
+  const method = 'wikiman/pages'
+  const response = await fetcher(base + '/api/' + method, { method: 'POST',
+    headers: { cookie, origin: base, 'content-type': 'application/json' },
+    body: JSON.stringify({ type: 'client-request', rpcId: 'agentwork-release-smoke', method, payload: { args: { cursor: '' } } }),
+    signal: AbortSignal.timeout(timeoutMs),
+  })
+  if (!response.ok) throw new ReleaseError('runtime-smoke', 'WikiMan owner RPC is unavailable; inspect runtime Node entries and plugin activation')
+  let body: unknown
+  try { body = await response.json() }
+  catch (error) { throw new ReleaseError('runtime-smoke', error instanceof SyntaxError ? 'WikiMan owner RPC returned non-JSON data' : 'WikiMan owner RPC response could not be read') }
+  const result = z.object({ type: z.literal('server-response'), result: z.object({ ok: z.literal(true),
+    value: z.object({ items: z.array(z.object({ pageId: z.string().min(1) })).min(1), nextCursor: z.string() }) }) }).safeParse(body)
+  if (!result.success) throw new ReleaseError('runtime-smoke', 'WikiMan did not read the fixture library; resource registration alone is not a healthy runtime')
+  return result.data.result.value.items.length
+}
+
+/**
  * Check a real standalone server without touching a user's home, library or live service.
  * @param input - Verified native server artifact.
  * @param fixture - Disposable portable source fixture to copy into the isolated home.
@@ -67,6 +92,7 @@ export async function smokeServer(input: string, fixture: string, execution: Exe
       if (!bootstrapResponse.ok) throw new ReleaseError('runtime-smoke', 'Packaged server bootstrap is unavailable after authentication')
       const bootstrap = z.object({ protocolVersion: z.literal(1), frontendHash: z.string(), bundles: z.record(z.string(), z.string()) })
         .parse(await bootstrapResponse.json())
+      const wikiPagesRead = await checkWikiRuntime(base, cookie, execution.timeoutMs)
       if (!bootstrap.bundles['@deepseek-ai/dsh-wikiman']) throw new ReleaseError('runtime-smoke', 'Standalone profile did not activate WikiMan')
       const dist = 'payload/server/node_modules/@deepseek-ai/dsh-web-frontend/dist/'
       const files = new Map(manifest.files.map(row => [row.path, row]))
@@ -84,7 +110,8 @@ export async function smokeServer(input: string, fixture: string, execution: Exe
         if (!response.ok || createHash('sha256').update(Buffer.from(await response.arrayBuffer())).digest('hex') !== file.sha256) throw new ReleaseError('runtime-smoke', 'Served Web resource differs from the selected artifact: ' + path)
         checked++
       }
-      return { target: manifest.target, commit: manifest.commit, authenticated: true, wikiPluginActive: true, webFilesChecked: checked,
+      return { target: manifest.target, commit: manifest.commit, authenticated: true, wikiPluginActive: true, wikiPagesRead,
+        webFilesChecked: checked,
         frontendHash: bootstrap.frontendHash, activePluginCount: Object.keys(bootstrap.bundles).length }
     } finally { child.kill(); await completion }
   } finally { await rm(root, { recursive: true, force: true }) }

@@ -35,7 +35,7 @@ description: "AgentWork 构建与发布命令字段、产物保证、故障处�
 | `run` | `--repository`、`--id`、`--attempt`；验证 develop 上成功的 AgentWork 构建、精确 attempt，以及相同源码通过 AgentWork CI。 |
 | `select` | `--input` 发布目录、`--target`、`--out`、`--expected-commit`；导入绑定源码的单个目标。 |
 | `runner` | `--labels` JSON、`--root`、`--config`；验证受控部署 runner 配置，不创建排队任务。 |
-| `smoke` | `--input` 服务端产物、`--fixture` portable 夹具，可选 `--timeout-ms`；不继承模型/GitHub 凭据，启动隔离的具名 profile，认证后比较实际提供的 Web 字节。 |
+| `smoke` | `--input` 服务端产物、`--fixture` portable 夹具，可选 `--timeout-ms`；不继承模型/GitHub 凭据，启动隔离 profile，通过 owner RPC 读取夹具页面并比较认证后的 Web 字节。 |
 | `deploy` / `rollback` | `--input` 服务端产物、`--root`、`--config`，可选 `--dry-run`；为已停止的服务选择兼容程序并保留私有备份。 |
 
 `--timeout-ms` 默认为每个构建/归档子进程 30 分钟。取消会终止所属进程树，等待结束后才清理输出。移除新建的不完整构建输出，不移除既有输出。发布时网络/服务端错误或响应不可读，以及部署结果未知时，保留草稿、程序版本或私有操作记录供检查，不声称已经回退。
@@ -49,7 +49,7 @@ description: "AgentWork 构建与发布命令字段、产物保证、故障处�
 
 前端包含 Web、客户端插件/分块/资产、Wiki stage/appearance/语言及许可证。原生构建消费该产物，发布验证逐项比较内嵌共享文件。服务端将 Web 及已安装插件字节导入实际运行包位置，Wiki 内核使用导入的 Wiki 资源。Mac 读取内置前端，iOS 将原始 Web index 与原生壳分开保留。不从静态服务端快照复制运行时生成的认证注入。
 
-[packaging/agentwork-server](../../packaging/agentwork-server/README.zh.md) 的服务端依赖集合在目标平台编译 Host 库和 GUI 的 Node 适配代码、安装生产依赖、实体化包链接，并包含 Node 和 Wiki 原生程序。`node-adapters` 构建阶段不生成浏览器包，浏览器资源从共享产物导入。生成后的 CLI 解析清单包含 WikiMan，源码中的 DSH 默认发行包保持独立。私有启动适配器走普通的 `dsh --profile agentwork-server` 路径。配置、知识库、home、workspace 和备份不属于发布资产。
+[packaging/agentwork-server](../../packaging/agentwork-server/README.zh.md) 的服务端依赖集合在目标平台编译 Host 库和所有声明 Client 能力的 Node 适配代码、安装生产依赖、实体化包链接，并包含 Node 和 Wiki 原生程序。`node-adapters` 构建阶段不生成浏览器包，浏览器资源从共享产物导入。生成后的 CLI 解析清单包含 WikiMan，源码中的 DSH 默认发行包保持独立。私有启动适配器走普通的 `dsh --profile agentwork-server` 路径。配置、知识库、home、workspace 和备份不属于发布资产。
 
 `release.json` 列出必需目标、归档、摘要、产物清单摘要及签名状态；`SHA256SUMS` 也覆盖发布清单。默认必需集合由 [release.ts](release.ts) 的 `requiredTargets` 定义，并与 Actions 矩阵校验。可选 Linux ARM64 与 Intel Mac 需要对应原生构建机；默认托管矩阵不代表这些额外目标已通过验收。 云端汇集逐个校验归档并保留原生构建机生成的归档字节，不保留整套解包副本。提取过程在清理前完成文件写入，解析失败时同样遵循这一顺序。
 

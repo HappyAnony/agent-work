@@ -61,7 +61,7 @@ pnpm --silent agentwork smoke --input .artifacts/agentwork/server-linux-x64 --fi
 pnpm --silent agentwork pack --input .artifacts/agentwork/server-linux-x64 --out .artifacts/agentwork/server-linux-x64.tar.gz
 ```
 
-CI 的 Linux 基线是 Ubuntu 22.04。运行包包含 Node 和平台原生依赖；打包后的启动器会检查 GNU libc 不低于构建基线。部署发行版也需要实测。`server-linux-arm64` 应在 ARM64 构建，不要复制其他机器的原生依赖。
+CI 的 Linux 基线是 Ubuntu 22.04。运行包包含 Node 和平台原生依赖；打包后的启动器会检查 GNU libc 不低于构建基线。部署发行版也需要实测；受限 shell 执行还要求内核支持并启用 Landlock，可通过包内启动器的 `--probe` 检查。`server-linux-arm64` 应在 ARM64 构建，不要复制其他机器的原生依赖。
 
 在 Mac ARM64 构建机使用同一份共享前端：
 

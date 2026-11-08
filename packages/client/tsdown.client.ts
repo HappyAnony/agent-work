@@ -114,8 +114,8 @@ function browserSourcePath(source: string, sourcemapPath: string): string {
 /**
  * Build the tsdown config for one UI plugin package: the node-half lib build
  * plus the browser client bundle. Client packages emit both halves during the
- * The node-adapters pass emits only Node outputs for native server packaging.
- * Client pass by default; packages needed for Host reflection may opt into the
+ * Client pass by default; the node-adapters pass emits only Node outputs.
+ * Packages needed for Host reflection may opt into the
  * earlier Host pass. A package-level tsdown.config.ts REPLACES the root
  * workspace layout, so the lib half must be restated here — dropping it leaves
  * the package without lib/index.js and the host Loader cannot import its node
@@ -147,7 +147,8 @@ export function clientBundle(
       ? [nodeClientConfig(manifest, clientEntry), client]
       : [client]
     if (face === 'node-adapters') {
-      const selected = node.filter(config => config.platform !== 'browser')
+      const selected = [...node.filter(config => config.platform !== 'browser'),
+        ...options.dualClient === true ? [nodeClientConfig(manifest, clientEntry)] : []]
       return selected.length ? selected : [SKIP_WORKSPACE_BUILD]
     }
     if (face === 'host') return options.hostPhase === true ? node : [SKIP_WORKSPACE_BUILD]

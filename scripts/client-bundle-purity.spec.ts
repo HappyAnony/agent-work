@@ -59,6 +59,9 @@ describe('client bundle build faces', () => {
     expect(configs[1]).toMatchObject({ platform: 'node', entry: ['node-worker.js'] })
     const linked = staticLinked(REQUESTING_PACKAGE_DIR, ['lib/types/client/index.js'])({ env: { DSH_BUILD_FACE: 'node-adapters' } })
     expect(linked).toEqual([{ entry: '' }])
+    const dual = clientBundle(packageDir('typert/registry'), ['lib/types/index.js'], { dualClient: true })({ env: { DSH_BUILD_FACE: 'node-adapters' } })
+    expect(dual.map(config => config.platform)).toEqual(['node', 'node'])
+    expect(dual[1]?.entry).toEqual({ 'client.node': 'lib/types/client/index.js' })
   })
 
   it('names both configs and the loader registration after the package directory manifest', () => {

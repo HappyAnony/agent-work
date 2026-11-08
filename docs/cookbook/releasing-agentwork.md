@@ -61,7 +61,7 @@ pnpm --silent agentwork smoke --input .artifacts/agentwork/server-linux-x64 --fi
 pnpm --silent agentwork pack --input .artifacts/agentwork/server-linux-x64 --out .artifacts/agentwork/server-linux-x64.tar.gz
 ```
 
-The CI Linux baseline is Ubuntu 22.04. Packages include Node and platform-native dependencies; the packaged launcher checks that GNU libc is at least the build baseline. Validate on the deployment distribution too. Build `server-linux-arm64` on ARM64 rather than copying another machine's native dependencies.
+The CI Linux baseline is Ubuntu 22.04. Packages include Node and platform-native dependencies; the packaged launcher checks that GNU libc is at least the build baseline. Validate on the deployment distribution too; confined shell execution also requires a kernel that enforces Landlock, checked by the packaged launcher’s `--probe`. Build `server-linux-arm64` on ARM64 rather than copying another machine's native dependencies.
 
 On the Mac ARM64 builder, use the same shared frontend:
 

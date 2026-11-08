@@ -171,6 +171,15 @@ export async function verifyArtifact(directory: string): Promise<Manifest> {
     if (legacy.wikiHash !== await hashFile(join(root, 'wiki/stage/build/portable/boot.js'))) throw new ReleaseError('integrity-mismatch', 'Wiki bootstrap digest differs from the packaged client inventory')
   }
   if (manifest.target.startsWith('server-')) {
+    const paths = new Set(manifest.files.map(row => row.path))
+    for (const file of manifest.files) {
+      if (file.kind !== 'file' || !/^payload\/server\/node_modules\/@deepseek-ai\/[^/]+\/package\.json$/u.test(file.path)) continue
+      const pkg = z.object({ main: z.string().optional() }).parse(JSON.parse(await readFile(join(directory, file.path), 'utf8')))
+      if (pkg.main && /\.[cm]?js$/u.test(pkg.main)) {
+        const entry = relative(directory, resolve(directory, dirname(file.path), pkg.main)).split(sep).join('/')
+        if (!paths.has(entry)) throw new ReleaseError('missing-resource', 'Server package is missing its Node entry: ' + entry)
+      }
+    }
     if (!manifest.files.some(row => row.kind === 'file' && row.path === 'payload/server/node_modules/@deepseek-ai/dsh-client-modules/lib/index.js')) {
       throw new ReleaseError('missing-resource', 'Server is missing the Node-side GUI module adapter; build node-adapters before deployment')
     }
