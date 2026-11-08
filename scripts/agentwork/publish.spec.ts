@@ -52,6 +52,24 @@ it('reports an unknown upload outcome and resumes its preserved draft safely', a
   expect(f.uploads()).toBe(7)
 })
 
+it.each(['create-json', 'upload-json', 'publish-json', 'create-server-error'])('preserves ambiguous write results: %s', async (failure) => {
+  const f = await fixture()
+  const transport: typeof fetch = async (input, init) => {
+    const response = await f.transport(input, init)
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+    const selected = failure.startsWith('upload') ? url.startsWith('https://uploads.github.com/')
+      : failure.startsWith('publish') ? init?.method === 'PATCH' : init?.method === 'POST'
+    if (!selected) return response
+    return failure.endsWith('server-error') ? new Response('', { status: 500 }) : new Response('truncated-json', { status: 201 })
+  }
+  const mode = failure.startsWith('publish') ? 'publish' : 'draft'
+  await expect(publishRelease(f.out, 'fixture/agent-work', mode, 'a'.repeat(40), f.execution, transport))
+    .rejects.toMatchObject({ code: 'publication-unknown' })
+  expect(await publishRelease(f.out, 'fixture/agent-work', mode, 'a'.repeat(40), f.execution, f.transport))
+    .toMatchObject({ draft: mode === 'draft' })
+  expect(f.uploads()).toBe(7)
+})
+
 it('rejects a wrong build commit and different existing asset content', async () => {
   const f = await fixture()
   await expect(publishRelease(f.out, 'fixture/agent-work', 'draft', 'd'.repeat(40), f.execution, f.transport)).rejects.toMatchObject({ code: 'incompatible' })

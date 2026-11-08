@@ -38,7 +38,7 @@ description: "AgentWork 构建与发布命令字段、产物保证、故障处�
 | `smoke` | `--input` 服务端产物、`--fixture` portable 夹具，可选 `--timeout-ms`；启动隔离的具名 profile，认证后比较实际提供的 Web 字节。 |
 | `deploy` / `rollback` | `--input` 服务端产物、`--root`、`--config`，可选 `--dry-run`；为已停止的服务选择兼容程序并保留私有备份。 |
 
-`--timeout-ms` 默认为每个构建/归档子进程 30 分钟。取消会终止所属进程树，等待结束后才清理输出。移除新建的不完整构建输出，不移除既有输出。发布/部署结果未知时保留草稿、程序版本或私有操作记录供检查，不声称已经回退。
+`--timeout-ms` 默认为每个构建/归档子进程 30 分钟。取消会终止所属进程树，等待结束后才清理输出。移除新建的不完整构建输出，不移除既有输出。发布时网络/服务端错误或响应不可读，以及部署结果未知时，保留草稿、程序版本或私有操作记录供检查，不声称已经回退。
 
 成功报告为 `{ok:true,schemaVersion:1,operation,result}`；失败为 `{ok:false,schemaVersion:1,operation,error:{code,message}}`。退出 `0` 表示该操作完成，`2` 表示参数/输入无效，`130` 表示取消，`1` 表示其他失败。构建成功不等于已发布；部署成功报告仍明确保留 `service:stopped` 并给出 profile 启动命令。Agent 根据结果字段作决定，不解析诊断措辞。
 

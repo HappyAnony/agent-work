@@ -38,7 +38,7 @@ Use `pnpm --silent agentwork <command>` from a checkout to build and verify matc
 | `smoke` | `--input` server artifact, `--fixture` portable fixture, optional `--timeout-ms`; boot an isolated named profile and compare authenticated served Web bytes. |
 | `deploy` / `rollback` | `--input` server artifact, `--root`, `--config`, optional `--dry-run`; select a compatible program for a stopped service and preserve private backups. |
 
-`--timeout-ms` defaults to 30 minutes per build/archive subprocess. Cancellation terminates the owned process tree and waits for it before output cleanup. New incomplete build outputs are removed; existing outputs are not removed. Unknown publication/deployment outcomes retain drafts, program versions or private receipts for inspection rather than claiming rollback.
+`--timeout-ms` defaults to 30 minutes per build/archive subprocess. Cancellation terminates the owned process tree and waits for it before output cleanup. New incomplete build outputs are removed; existing outputs are not removed. Network, server or unreadable publication responses, and unknown deployment outcomes, retain drafts, program versions or private receipts for inspection rather than claiming rollback.
 
 Success reports use `{ok:true,schemaVersion:1,operation,result}`. Failures use `{ok:false,schemaVersion:1,operation,error:{code,message}}`. Exit `0` means that operation completed, `2` means invalid arguments/input, `130` means cancellation, and `1` means another failure. A successful build is not a published release; a successful deployment report explicitly leaves `service:stopped` and provides the profile start command. Use the result fields, not diagnostic wording, for Agent decisions.
 
