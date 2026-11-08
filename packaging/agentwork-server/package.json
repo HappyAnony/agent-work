@@ -1,6 +1,6 @@
 {
   "name": "agentwork-server-closure",
-  "version": "0.2.2-rc.1",
+  "version": "0.2.2-rc.2",
   "private": true,
   "type": "module",
   "license": "MIT AND AGPL-3.0-or-later",

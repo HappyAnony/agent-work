@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-ios",
-  "version": "0.2.2-rc.1",
+  "version": "0.2.2-rc.2",
   "private": true,
   "description": "AgentWork iOS carrier with locally packaged frontend resources and a shared remote backend",
   "license": "MIT",
